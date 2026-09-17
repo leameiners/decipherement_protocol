@@ -3,7 +3,7 @@ covering P1, P2, P3 (should report not-applicable), P5, P6, P7, P9 and the
 P10 totaling-tablet helper -- the fullest exercise of the toolkit so far.
 """
 import sys, pickle
-sys.path.insert(0, '/tmp/claude-0/-home-user-claude-tests/dd3b3458-a783-5e4a-9d0b-609f2f7ec756/scratchpad/protocol_toolkit')
+import os; sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from decipherment_protocol import Document, Corpus, tests
 
 SCRATCH = '/tmp/claude-0/-home-user-claude-tests/dd3b3458-a783-5e4a-9d0b-609f2f7ec756/scratchpad/'

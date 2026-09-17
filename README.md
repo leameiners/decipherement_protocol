@@ -55,6 +55,8 @@ from decipherment_protocol import tests
 
 tests.p1_census(corpus)                        # texts, occurrences, inventory, hapax
 tests.p2_rank_frequency(corpus)                 # Zipf + Modified Power Law
+tests.p1_census_from_freq(sign_freq)            # same, from a bare {sign: count} table -- no per-text data needed
+tests.p2_rank_frequency_from_freq(sign_freq)    # same, when a script's own maintainers publish frequencies directly
 tests.p3_site_specialization(corpus)            # checks diversity first; may report not-applicable
 tests.p4_allograph_variant_ratio(raw_by_base)   # generic helper only -- see below
 tests.p5_positional_classes(corpus)             # initial/medial/final classifier
@@ -135,6 +137,15 @@ scripts' inconsistency, which building one shared implementation surfaced.
 That's the actual case for a toolkit over one-off scripts: not "faster," but
 "can't quietly disagree with itself between two tests on the same data."
 
+A third thing surfaced doing the same for Indus: its mirror's per-sign
+aggregate table (`icit.js`) and its per-text sign-sequence table (`texts.js`)
+don't agree with each other either — `texts.js`'s `text_code` field, even
+after handling its bracket/slash/damage-placeholder conventions, only
+resolves 82.1% of `icit.js`'s total occurrences. P1/P2 now use whichever
+table is actually authoritative for them (see "Validation status" below);
+P3/P5/P6/P7 still need `texts.js` and are reported against that 82% subset's
+real size rather than silently treated as the whole corpus.
+
 ## Layout
 
 ```
@@ -145,7 +156,7 @@ decipherment_protocol/
 examples/
   run_lineara.py        rebuilds the Linear A corpus from raw source, validates against the dossier
   run_protoelamite.py   same, for Proto-Elamite -- also exercises P3, P9, P10
-  run_indus.py          same idea for Indus, but see the caveat below -- it doesn't fully land
+  run_indus.py          same idea for Indus -- see below, now an exact match on P1/P2
 ```
 
 ## Validation status, honestly
@@ -156,14 +167,21 @@ examples/
 - **Proto-Elamite**: P1, P2, P5, P7, P10 reproduce exactly; P3 correctly detects
   non-applicability; P6 is close (Q within 0.005); P9's z-scores are close
   (different permutation draw, as expected).
-- **Indus**: does NOT reproduce exactly. `texts.js`'s `text_code` field carries
-  ad hoc annotation conventions (bracket-enclosed partial signs, slash-separated
-  ambiguous alternate readings) this adapter approximates rather than fully
-  resolves -- inventory comes out 677 vs. the dossier's 715, occurrences ~15,000
-  vs. 18,069. The Zipf/MPL exponents and the site-specialization signal are in
-  the right range and point the same direction, which is enough to show the
-  toolkit's math isn't broken on a third, differently-shaped corpus, but this
-  is the one example still worth treating as approximate rather than verified.
-  Resolving the `text_code` parsing precisely is the concrete next step before
-  claiming all three scripts, not two of three, run through one shared,
-  fully-validated implementation.
+- **Indus**: P1 and P2 now reproduce exactly (18,069 occurrences, 715 signs,
+  216 hapax, Zipf s=0.736/1.553, MPL exponent -1.207 -- all exact matches to the
+  dossier). The fix: those two numbers come from `icit.js`'s own published
+  per-sign frequency table via `p1_census_from_freq`/`p2_rank_frequency_from_freq`,
+  not from re-parsing `texts.js`'s `text_code` field as the first version of this
+  example did. It turns out `text_code` is a lossy re-derivation of the same
+  underlying data -- even with bracket/slash/damage-placeholder handling, it only
+  resolves 82.1% of icit.js's total occurrences (14,968 of 18,069), a real,
+  now-quantified property of this mirror rather than a parsing bug to keep
+  chasing. P3, P5, P6, and P7 need real per-text sequences that only `texts.js`
+  has, so they still run on that resolvable 82% subset -- reported as a subset
+  (`run_indus.py` prints its exact size), not silently treated as the whole
+  corpus. P6's community count and Q now land very close to the dossier's
+  (6 communities both, Q=0.143 vs. 0.137) since Indus's one-segment-per-text
+  structure sidesteps the isolate-counting discrepancy documented above for
+  Linear A. P3's residuals are in the right range but don't match the dossier's
+  pooled tablet/seal-subtype figures exactly, since this adapter uses the raw
+  un-pooled type codes (documented in `run_indus.py`'s own output).

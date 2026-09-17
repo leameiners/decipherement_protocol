@@ -4,7 +4,7 @@ and confirm P1/P2/P5/P6/P7 reproduce the numbers already published in the
 Linear A Dossier. If these don't match, the toolkit has a bug, not the dossier.
 """
 import sys, pickle
-sys.path.insert(0, '/tmp/claude-0/-home-user-claude-tests/dd3b3458-a783-5e4a-9d0b-609f2f7ec756/scratchpad/protocol_toolkit')
+import os; sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from decipherment_protocol import Document, Corpus, tests
 
 SCRATCH = '/tmp/claude-0/-home-user-claude-tests/dd3b3458-a783-5e4a-9d0b-609f2f7ec756/scratchpad/'

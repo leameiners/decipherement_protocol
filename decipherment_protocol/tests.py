@@ -31,16 +31,40 @@ def p1_census(corpus):
     }
 
 
-def p2_rank_frequency(corpus, cutoffs=(30, 60, 100, None)):
-    freq = corpus.sign_freq()
-    ranked = sorted(freq.values(), reverse=True)
+def p1_census_from_freq(sign_freq: dict):
+    """P1 restricted to what a bare frequency table can answer: total
+    occurrences, inventory size, hapax rate. No text-length stats, since those
+    need per-text sequences a frequency table alone doesn't carry.
+
+    Use this instead of p1_census when a script's own maintainers publish an
+    aggregate per-sign frequency table that is more authoritative than
+    anything a caller could re-derive from parsing raw per-text sequences --
+    e.g. Indus's icit.js, whose 715-sign/18,069-occurrence totals are the
+    dossier's actual source for these two numbers, not a re-parse of
+    texts.js's text_code field (see the Indus example and its README note on
+    why the two disagree).
+    """
+    hapax = sum(1 for f in sign_freq.values() if f == 1)
+    return {'total_occurrences': sum(sign_freq.values()), 'inventory_size': len(sign_freq),
+            'hapax_legomena': hapax, 'hapax_share': hapax / len(sign_freq) if sign_freq else float('nan'),
+            'sign_freq': dict(sign_freq)}
+
+
+def p2_rank_frequency_from_freq(sign_freq: dict, cutoffs=(30, 60, 100, None)):
+    """P2 on a bare frequency dict -- see p1_census_from_freq's docstring for
+    when to prefer this over p2_rank_frequency(corpus, ...)."""
+    ranked = sorted(sign_freq.values(), reverse=True)
     zipf = {}
     for c in cutoffs:
         label = c if c is not None else len(ranked)
         s, r2 = stats.power_law_fit(ranked, c)
         zipf[label] = {'exponent': s, 'r2': r2}
-    g, r2_mpl = stats.modified_power_law(freq)
+    g, r2_mpl = stats.modified_power_law(sign_freq)
     return {'zipf_by_cutoff': zipf, 'mpl_exponent': -g, 'mpl_r2': r2_mpl}
+
+
+def p2_rank_frequency(corpus, cutoffs=(30, 60, 100, None)):
+    return p2_rank_frequency_from_freq(corpus.sign_freq(), cutoffs)
 
 
 def p3_site_specialization(corpus, min_dominant_share=0.85):
