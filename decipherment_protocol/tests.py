@@ -96,6 +96,27 @@ def p4_allograph_variant_ratio(raw_tokens_by_base: dict[str, set]):
             'variant_share': len(multi) / n_base if n_base else float('nan')}
 
 
+def _occ_in_multi_sign_segments(corpus):
+    """Occurrence count restricted to segments of length >= 2.
+
+    Shared by p5_positional_classes and p6_cooccurrence_network so both use
+    the same node-eligibility threshold. A sign occurring only in length-1
+    segments (isolates) has no position information at all (no "initial" or
+    "final" is meaningful for it) and can never contribute a co-occurrence
+    edge either, since there is nothing else in that segment to pair with --
+    so excluding those occurrences from the frequency threshold both tests
+    gate on is the correct behavior for each, not just a shared quirk.
+    """
+    occ = Counter()
+    for d in corpus.documents:
+        for seg in d.segments:
+            if len(seg) < 2:
+                continue
+            for s in seg:
+                occ[s] += 1
+    return occ
+
+
 def p5_positional_classes(corpus, min_n=5, threshold=0.6):
     pos_counts = defaultdict(lambda: {'initial': 0, 'medial': 0, 'final': 0})
     total_occ = Counter()
@@ -126,7 +147,7 @@ def p5_positional_classes(corpus, min_n=5, threshold=0.6):
 
 
 def p6_cooccurrence_network(corpus, min_n=5):
-    total_occ = corpus.sign_freq()
+    total_occ = _occ_in_multi_sign_segments(corpus)
     nodes = sorted([s for s, n in total_occ.items() if n >= min_n])
     node_idx = {s: i for i, s in enumerate(nodes)}
     edge_weight = defaultdict(float)

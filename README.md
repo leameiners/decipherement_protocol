@@ -247,23 +247,36 @@ examples/
 
 ## Validation status
 
-- **Linear A**: P1, P2, and P5 reproduce their expected published numbers
-  exactly. P6/P7 are close (modularity Q within 0.005; length within 0.1)
-  because the original per-corpus analysis used two subtly different sign-set
-  definitions for P5/P6 versus P7 (whether numeral-tally tokens count as
-  "words") that this package's single consistent `segments` definition
-  doesn't reproduce bit-for-bit — documented in each example's own output
-  rather than silently forced to match.
-- **Proto-Elamite**: P1, P2, P5, P7, and P10 reproduce exactly; P3 correctly
-  detects non-applicability; P6 is close (Q within 0.005); P9's z-scores are
-  close (different permutation draw, as expected from a stochastic test).
+- **Linear A**: P1, P2, P5, and P6's community count reproduce their expected
+  published numbers exactly (7 communities). P6's modularity Q is close but
+  not identical (0.191 vs. 0.198 — a small remaining gap in the greedy merge
+  order, not the node set, which is now defined identically to P5's). P7 is
+  close (length within 0.1) because the original per-corpus analysis used two
+  subtly different sign-set definitions for P5/P6 versus P7 (whether
+  numeral-tally tokens count as "words") that this package's single
+  consistent `segments` definition doesn't reproduce bit-for-bit — documented
+  in the example's own output rather than silently forced to match.
+- **Proto-Elamite**: P1, P2, P5, P6 (community count *and* modularity, both
+  exact — 5 communities, Q=0.1433), P7, and P10 all reproduce exactly; P3
+  correctly detects non-applicability; P9's z-scores are close (different
+  permutation draw, as expected from a stochastic test).
 - **Indus**: P1 and P2 reproduce exactly (18,069 occurrences, 715 signs, 216
   hapax, Zipf s=0.736/1.553, Modified Power Law exponent −1.207) once fed
   `icit.js`'s own frequency table rather than a re-parse of `texts.js`. P3,
   P5, P6, and P7 run on the 82.1%-resolvable `text_code` subset described
-  above; P6's community count and modularity now land close to expected
-  (6 communities, Q=0.143) since Indus's one-segment-per-text structure
-  sidesteps the isolate-counting issue noted for Linear A above.
+  above; P6 lands close to expected (6 communities, Q=0.141) since Indus's
+  one-segment-per-text structure means there are effectively no length-1
+  isolate segments to create a node-set mismatch in the first place.
+
+P6's node-inclusion threshold (`p6_cooccurrence_network`) counts sign
+occurrence only within segments of length ≥2 — the same definition
+`p5_positional_classes` uses (`_occ_in_multi_sign_segments`), since a sign
+occurring only in length-1 segments has no position information and can
+never form a co-occurrence edge either. This is what fixed Linear A's and
+Proto-Elamite's community counts to match exactly; the original version of
+this package thresholded on raw occurrence across all segments, which
+counted isolates that the source analyses this package validates against
+had already excluded.
 
 ## References
 

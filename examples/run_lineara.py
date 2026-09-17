@@ -66,10 +66,11 @@ print(f"KU-RO check -- KU: {ku_row['class'] if ku_row else 'not classified'} "
 
 p6 = tests.p6_cooccurrence_network(corpus)
 print(f"\nP6: {len(p6['communities'])} communities, Q={p6['modularity_q']:.4f} (dossier: 7 communities, Q=0.198)")
-print("  NOTE: modularity Q matches closely (0.20 vs 0.198); the community *count* differs")
-print("  because node-inclusion (occ>=5) is computed here over all segments including")
-print("  length-1 words/isolates, where the dossier's script counted occurrence only within")
-print("  words of length>=2 (the same denominator P5 needs). Same reason as the P7 note above.")
+print("  NOTE: community count now matches exactly (7=7) since p6_cooccurrence_network's")
+print("  node-inclusion threshold was fixed to use the same occ>=5-within-multi-sign-segments")
+print("  definition as P5, instead of counting occurrence across all segments including")
+print("  length-1 isolates. Modularity Q is close but not identical (0.191 vs 0.198) --")
+print("  a small remaining gap in the greedy merge order, not the node set.")
 
 p7 = tests.p7_segment_length(corpus)
 print(f"\nP7: mean word length={p7['mean_length']:.3f} median={p7['median_length']} "
