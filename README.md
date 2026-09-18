@@ -160,20 +160,30 @@ sign showing up in the right place. See `examples/run_lineara.py`,
 `examples/run_protoelamite.py`, and `examples/run_indus.py` for the exact
 reproductions of all three results above.
 
-## P9's honest limitation
+## P9, redefined
 
 `stats.permutation_lag_test`'s docstring states a caveat worth repeating here:
-if the labels fed into it were themselves derived from position (as
+if the labels fed into it are themselves derived from position (as
 `p5_positional_classes`'s output is), the lag-1 result is partly circular by
 construction — nearby positions in a short segment correlate on a
-position-derived label almost by definition. Running this test on all three
-corpora produced a different-looking pattern each time (Indus: signs
-alternate class at lag 1; Linear A: signs clump at lag 1, then alternate at
-lags 2–3; Proto-Elamite: signs clump hard at lag 1, sit at chance at lag 2,
-then alternate hard at lag 3) — three inconsistent shapes using an identical
-method, which is itself the finding: **P9 is not yet a valid basis for a
-cross-script claim** until it is redefined around a class label that isn't
-itself position-based.
+position-derived label almost by definition. Running P9 on `p5`'s classes
+produced a different-looking pattern on each of the three corpora (Indus:
+signs alternate class at lag 1; Linear A: signs clump at lag 1, then
+alternate at lags 2–3; Proto-Elamite: signs clump hard at lag 1, sit at
+chance at lag 2, then alternate hard at lag 3) — three inconsistent shapes
+using an identical method, which was itself the finding: not a valid basis
+for a cross-script claim as originally defined.
+
+`p9_periodicity` already accepted an arbitrary `sign -> label` mapping, so no
+core change was needed to fix this, only which test supplies the label.
+`examples/run_p9_redefined.py` reruns P9 using `p6_cooccurrence_network`'s
+community assignment instead — a label built from which other signs a sign
+co-occurs with across the whole corpus, not from its own position — which
+removes the circularity. The result: every script clumps at lag 1 (Indus
+z=+25.0, Linear A z=+2.2, Proto-Elamite z=+9.6), i.e. signs from the same
+co-occurrence community tend to sit next to each other within a segment,
+strongly on two scripts and weakly on the third. This is now a real, if
+modest, generalizing result across all three corpora, not a discarded one.
 
 ## What generalized and what didn't
 
@@ -256,13 +266,20 @@ disagrees with the primary published source in a documented, characterizable
 way: `icit.js` (a per-sign aggregate frequency table shipped with the mirror)
 sums to exactly 18,069 occurrences across exactly 715 signs, while
 `texts.js`'s per-text `text_code` field — the only source with real per-text
-sign sequences — resolves only 82.1% of that total even after handling its
-bracket-enclosed partial-sign and slash-separated ambiguous-reading
-conventions. P1/P2 in `examples/run_indus.py` use `icit.js` directly
+sign sequences — resolves 82.9% of that total (14,978 occurrences). This is
+not a parsing gap: the field's character set is closed (digits, `+`, `-`,
+`[`, `]`, `/`), and every convention it uses is handled exactly — a leading
+or trailing bracket marks partial legibility on an otherwise-legible sign; a
+literal `000` is an explicit damage placeholder with nothing left to read;
+`a/b` gives two alternate readings, and the parser takes whichever one isn't
+itself `000`. The remaining 17.1% is confirmed missingness in the source:
+902 of 5,445 records carry no `text_code` at all, and 1,442 further
+occurrences within the remaining records are `000` damage placeholders.
+P1/P2 in `examples/run_indus.py` use `icit.js` directly
 (`p1_census_from_freq`/`p2_rank_frequency_from_freq`); P3/P5/P6/P7 still need
-`texts.js`'s per-text sequences and are reported against that 82% subset's
-actual, quantified size rather than treated as the whole corpus. To regenerate
-these inputs from scratch:
+`texts.js`'s per-text sequences and are reported against that 82.1%-of-records
+subset's actual, quantified size rather than treated as the whole corpus. To
+regenerate these inputs from scratch:
 
 - **Linear A**: clone `github.com/mwenge/lineara.xyz` and parse
   `LinearAInscriptions.js` — a JS `Map` literal, not a plain array, with two
@@ -289,9 +306,10 @@ decipherment_protocol/
   stats.py   power_law_fit, contingency_residuals, diversity_ok, cnm_modularity, permutation_lag_test
   tests.py   p1_census ... p10_totaling_tablet_test
 examples/
-  run_lineara.py        rebuilds the Linear A corpus from raw source
-  run_protoelamite.py   same, for Proto-Elamite -- also exercises P3, P9, P10
-  run_indus.py          same, for Indus -- exact match on P1/P2, subset-based on P3/P5/P6/P7
+  run_lineara.py         rebuilds the Linear A corpus from raw source
+  run_protoelamite.py    same, for Proto-Elamite -- also exercises P3, P9, P10
+  run_indus.py           same, for Indus -- exact match on P1/P2, subset-based on P3/P5/P6/P7
+  run_p9_redefined.py    reruns P9 on all three corpora using P6 community labels, not P5's
 ```
 
 ## Validation status
@@ -326,6 +344,25 @@ Proto-Elamite's community counts to match exactly; the original version of
 this package thresholded on raw occurrence across all segments, which
 counted isolates that the source analyses this package validates against
 had already excluded.
+
+## A fourth script isn't a code problem, it's a data problem
+
+The protocol is built to be corpus-agnostic -- `types.Document`/`Corpus` only
+need a sign sequence per text, an optional sub-unit boundary, and site/type
+metadata -- so applying it to a fourth script needs no new code, only a new
+adapter like `run_indus.py`/`run_lineara.py`/`run_protoelamite.py`. What
+actually blocks a fourth application in practice is that every realistic
+undeciphered or partially-deciphered candidate we could identify -- Cypro-Minoan
+(217 catalogued inscriptions), Linear Elamite (a corpus split across a Susa
+sub-corpus of stone monuments and a Collection sub-corpus of silver vessels,
+smaller still: 265 sign variants averaging only 5.6 occurrences each, against
+905 variants averaging 19.9 for Indus), Rongorongo (roughly two dozen
+surviving objects) -- is one to two orders of magnitude smaller than any of
+the three corpora this package already validates against, and none has an
+openly downloadable transliterated dataset reachable through this package's
+usual approach (clone a mirror, fetch a bulk dump). A future adapter for any
+of these should expect thin, noisy P2/P5/P6/P7/P9 results as a property of
+the source, not a bug in the adapter.
 
 ## References
 
