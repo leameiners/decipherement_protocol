@@ -16,7 +16,7 @@ for pnum, lines in parsed.items():
     segments = [l['signs'] for l in lines]  # keep empty-sign lines too, for segment_numerals alignment
     seg_nums = [l['nums'] for l in lines]
     meta = cat[pnum]
-    docs.append(Document(doc_id=pnum, segments=[s for s in segments if s],
+    docs.append(Document(doc_id=pnum, segments=segments,
                           site=meta['provenience'], artifact_type=meta['object_type'],
                           segment_numerals=seg_nums))
 
@@ -57,3 +57,13 @@ for lag, r in p9['lag_results'].items():
 p10 = tests.p10_totaling_tablet_test(corpus)
 print(f"\nP10 totaling-tablet: tested={p10['tested']} (dossier: 926) hit_rate={p10['hit_rate']*100:.1f}% "
       f"(dossier: 17.7%) null_rate={p10['null_rate']*100:.1f}% (dossier: 13.1%)")
+
+p10_m288 = tests.p10_totaling_tablet_test(corpus, marker_predicate=lambda signs: 'M288' in signs)
+print(f"\nP10 restricted to M288-terminated texts: tested={p10_m288['tested']} (expect 102) "
+      f"hit_rate={p10_m288['hit_rate']*100:.1f}% (expect 33.3%) null_rate={p10_m288['null_rate']*100:.1f}% "
+      f"(expect 22.8%)")
+print("  Unlike Linear A's ku-ro restriction (which jumped from ~2x null to a much larger gap),")
+print("  this barely moves the needle over the unrestricted rate above -- M288's documented")
+print("  function ('a container sign that may function as a unit marker or totalizer') is")
+print("  weaker than a dedicated summation word, so presence in the closing line isn't as")
+print("  strong a genre-precondition filter as ku-ro's literal meaning is for Linear A.")

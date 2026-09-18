@@ -70,6 +70,8 @@ tests.p7_segment_length(corpus)                 # word/line length stats
 tests.p8_numeral_value_distribution(corpus, numeral_class="N01")
 tests.p9_periodicity(corpus, classes=p5_result["classes"])
 tests.p10_totaling_tablet_test(corpus)          # Englund-style external-validation helper
+tests.p10_totaling_tablet_test(corpus, marker_predicate=lambda signs: "KU-RO" in signs)
+                                                 # restricted to texts that actually close with a "total" marker
 ```
 
 Each function returns a plain dict — no printing, no plotting. See
@@ -110,6 +112,36 @@ cross-check, the actual method that helped decipher proto-cuneiform and
 Proto-Elamite numeral *values* (Englund 2004; Damerow & Englund 1989) — is
 implemented generically as `p10_totaling_tablet_test`; everything else in a
 real P10 analysis is corpus-specific research, not a function call.
+
+## The totaling-tablet test needs a genre precondition, not just numeral lines
+
+`p10_totaling_tablet_test` takes an optional `marker_predicate(signs: list[str]) -> bool`,
+restricting the test to documents whose *last* numeral-bearing segment's sign
+list satisfies it — e.g. `lambda signs: 'KU-RO' in signs`. Without this,
+the test conflates real ledgers (an itemized list followed by a stated total)
+with ordinary multi-line inventories that never state a total at all, which
+dilutes any real signal toward the null. Testing this directly:
+
+- **Linear A, unrestricted** (every text with 3+ numeral-bearing lines,
+  198 texts): 3.0% hit rate vs. a 1.5% null — close to chance, because most
+  of those 198 texts simply aren't ledgers with a summary line.
+- **Linear A, restricted to texts literally closing with a *ku-ro* ("total")
+  line** (11 texts): 36.4% — a real jump, and three of the seven non-matches
+  (HT9a, HT13, HT102) are independently tagged "Wrong Total" by the source
+  corpus's own metadata, meaning the check finds real scribal errors, not noise.
+- **Proto-Elamite, restricted to texts closing with sign M288** (the
+  documented totalizer, 102 texts): 33.3% vs. a 22.8% null — only a modest
+  improvement over the unrestricted rate (17.7% vs. 13.1%), nothing like
+  Linear A's jump.
+
+The asymmetry is the actual finding: M288's documented function ("a container
+sign that may function as a unit marker or totalizer") is weaker and more
+hedged than *ku-ro*'s dedicated meaning "total." A sign that sometimes plays a
+totalizing role is not the same restriction as a word whose sole job is
+summation — the genre precondition Englund's method needs is about the marker's
+function, not just its presence in the closing line. See
+`examples/run_lineara.py` and `examples/run_protoelamite.py` for the exact
+reproductions of both sets of numbers above.
 
 ## P9's honest limitation
 

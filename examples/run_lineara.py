@@ -83,3 +83,72 @@ print("  numeral tokens from P7's word-length count. The two historical scripts 
 print("  different sign-sets for P5/P6 vs. P7 without saying so -- the toolkit forces one")
 print("  consistent Document.segments definition instead, which is more correct, but means")
 print("  a caller must choose up front which sign-set a given corpus's P7 should run over.")
+
+# ---------- P10: Englund totaling-tablet test, with the genre-precondition refinement ----------
+# Needs a third corpus: one segment per ATF *line* (not per word), each segment carrying
+# both its word-tokens (to check for a literal "total" word) and its numeral value(s).
+SUP = {'⁰': '0', '¹': '1', '²': '2', '³': '3', '⁴': '4', '⁵': '5', '⁶': '6', '⁷': '7', '⁸': '8', '⁹': '9'}
+SUB = {'₀': '0', '₁': '1', '₂': '2', '₃': '3', '₄': '4', '₅': '5', '₆': '6', '₇': '7', '₈': '8', '₉': '9'}
+
+def parse_fraction(tok):
+    if '⁄' not in tok:
+        return None
+    num, den = tok.split('⁄')
+    try:
+        return int(''.join(SUP.get(c, c) for c in num)) / int(''.join(SUB.get(c, c) for c in den))
+    except (ValueError, ZeroDivisionError):
+        return None
+
+def line_signs_and_numerals(tokens):
+    signs, nums, i = [], [], 0
+    while i < len(tokens):
+        tok = tokens[i]
+        if tok == DIVIDER:
+            i += 1
+            continue
+        if tok.isdigit():
+            v = float(tok)
+            if i + 1 < len(tokens):
+                f2 = parse_fraction(tokens[i + 1])
+                if f2 is not None:
+                    v += f2
+                    i += 1
+            nums.append((v, 'unit'))
+        elif parse_fraction(tok) is not None:
+            nums.append((parse_fraction(tok), 'unit'))
+        else:
+            signs.append(tok)
+        i += 1
+    return signs, nums
+
+line_docs = []
+for name, rec in raw:
+    tw = rec.get('transliteratedWords')
+    if not tw:
+        continue
+    lines, cur = [], []
+    for tok in tw:
+        if tok == '\n':
+            lines.append(cur); cur = []
+        else:
+            cur.append(tok)
+    if cur:
+        lines.append(cur)
+    segments, seg_nums = [], []
+    for l in lines:
+        signs, nums = line_signs_and_numerals(l)
+        segments.append(signs)
+        seg_nums.append(nums)
+    line_docs.append(Document(doc_id=name, segments=segments, segment_numerals=seg_nums,
+                               site=rec.get('site'), artifact_type=rec.get('support')))
+line_corpus = Corpus(name='Linear A (ATF lines)', documents=line_docs)
+
+p10 = tests.p10_totaling_tablet_test(line_corpus)
+print(f"\nP10 unrestricted: tested={p10['tested']} (expect 198) hit_rate={p10['hit_rate']*100:.1f}% "
+      f"(expect 3.0%) null_rate={p10['null_rate']*100:.1f}% (expect ~1.5%)")
+
+p10_kuro = tests.p10_totaling_tablet_test(line_corpus, marker_predicate=lambda signs: 'KU-RO' in signs)
+print(f"P10 restricted to ku-ro-terminated texts: tested={p10_kuro['tested']} (expect 11) "
+      f"hit_rate={p10_kuro['hit_rate']*100:.1f}% (expect 36.4%)")
+print("  This is the genre-precondition refinement: Englund's method needs a text that is")
+print("  itself a ledger (itemized list + stated total), not just any run of numeral lines.")
