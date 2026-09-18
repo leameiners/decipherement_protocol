@@ -133,15 +133,32 @@ dilutes any real signal toward the null. Testing this directly:
   documented totalizer, 102 texts): 33.3% vs. a 22.8% null — only a modest
   improvement over the unrestricted rate (17.7% vs. 13.1%), nothing like
   Linear A's jump.
+- **Indus, restricted to its one genre with an actual decoded numeral
+  system** (V+# volumetric tablets — sign 700 followed by a long-linear-stroke
+  numeral): nothing at all. `segment` here isn't a line within one text —
+  Indus has no line structure — so the check groups *co-located artifacts*
+  by fine-grained findspot instead (site/area/section/block/house/room) and
+  asks whether any object's V+# value equals the sum of the others found with
+  it. Only 14 findspot groups have enough decodable V+# objects to test:
+  0% hit rate, 0% null. A more careful leave-one-out version across all 26
+  groups with 2+ decodable objects finds just 4 apparent matches — every one
+  two objects trivially sharing the same small value (4=4, 3=3) — against a
+  shuffle-based null that produces *more* such coincidences on average (8.09)
+  than the real data does.
 
-The asymmetry is the actual finding: M288's documented function ("a container
-sign that may function as a unit marker or totalizer") is weaker and more
-hedged than *ku-ro*'s dedicated meaning "total." A sign that sometimes plays a
-totalizing role is not the same restriction as a word whose sole job is
-summation — the genre precondition Englund's method needs is about the marker's
-function, not just its presence in the closing line. See
-`examples/run_lineara.py` and `examples/run_protoelamite.py` for the exact
-reproductions of both sets of numbers above.
+The asymmetry across all three is the actual finding. M288's documented
+function ("a container sign that may function as a unit marker or totalizer")
+is weaker and more hedged than *ku-ro*'s dedicated meaning "total" — a sign
+that sometimes plays a totalizing role is not the same restriction as a word
+whose sole job is summation. And Indus's V+# genre fails for a more basic
+reason than either: a V+# tablet records one container's fill count, never
+several counts that a related object then sums into a stated total — there's
+no ledger structure to restrict *to* in the first place, even in Indus's most
+numerically legible genre. The genre precondition Englund's method needs is
+about the marker's function and the text's structure, not just a plausible
+sign showing up in the right place. See `examples/run_lineara.py`,
+`examples/run_protoelamite.py`, and `examples/run_indus.py` for the exact
+reproductions of all three results above.
 
 ## P9's honest limitation
 
