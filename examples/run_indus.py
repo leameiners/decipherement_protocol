@@ -7,19 +7,32 @@ Fixed from the previous version of this script: P1/P2 (occurrence counts,
 inventory size, Zipf/MPL exponents) now come from icit.js's own published
 per-sign frequency table, not from re-parsing texts.js's text_code field --
 icit.js has exactly 715 signs summing to exactly 18,069 occurrences, which
-IS the dossier's source for those two numbers. text_code (in texts.js) turns
-out to be a lossy re-derivation of the same underlying data: it carries ad
-hoc annotation conventions (bracket-enclosed partial signs, slash-separated
-ambiguous alternate readings, a literal "000" damage placeholder, and 902
-records with no text_code at all) that this adapter approximates rather than
-fully resolves, and re-parsing it recovers only ~83% of icit.js's total
-occurrences. That's not a bug worth chasing further -- it's a genuine,
-now-quantified fact about this mirror: the per-sign aggregate table and the
-per-text sign-sequence table don't fully agree with each other, so P1/P2 use
-whichever one is actually authoritative for them (icit.js) while P3/P5/P6/P7
-(which need real per-text sequences, which icit.js does not have) use
-texts.js's text_code on the resolvable subset, reported as a subset, not
-silently treated as the whole corpus.
+IS the dossier's source for those two numbers.
+
+text_code's annotation conventions have now been resolved exhaustively, not
+approximated: the field's full character set is closed ({digits, +, -, [, ],
+/}, confirmed by scanning every record), so every convention it uses is
+accounted for --
+  - a leading/trailing "[" or "]" on a sign marks partial legibility on that
+    end; the sign itself is still read and counted (tok.strip('[]')).
+  - a literal "000" is an explicit damage placeholder for a sign the source
+    could not read at all -- there is no more information to recover.
+  - "a/b" gives two alternate readings for one ambiguous sign; this adapter
+    now takes the first alternative that is not itself the damage placeholder
+    "000" (fixed here -- the previous version always took the first slot
+    literally, silently discarding a real sign in the 10 records where the
+    first alternative was "000" and the second was legible).
+Even with every convention resolved exactly, text_code still recovers only
+82.9% of icit.js's total occurrences (14,978 / 18,069), and that ceiling is
+data missingness in this mirror, not an adapter shortfall: 902 of 5,445
+records (16.6%) carry no text_code at all, and a further 1,442 occurrences
+within the remaining records are explicit "000" damage placeholders with
+nothing left to parse. The per-sign aggregate table and the per-text
+sign-sequence table genuinely disagree by that much, so P1/P2 use whichever
+one is actually authoritative for them (icit.js) while P3/P5/P6/P7 (which
+need real per-text sequences, which icit.js does not have) use texts.js's
+text_code on the resolvable subset, reported as a subset, not silently
+treated as the whole corpus.
 """
 import sys, json
 import os; sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -62,7 +75,12 @@ def parse_text_code(tc):
         if not tok:
             continue
         if '/' in tok:
-            tok = tok.split('/')[0]  # ambiguous alternate reading -- take the first
+            alts = [a.strip('[]') for a in tok.split('/')]
+            # ambiguous alternate reading -- take the first legible one, so a
+            # damage placeholder ('000') in the first slot doesn't discard a
+            # real sign recorded as the second alternative (10 occurrences)
+            legible = [a for a in alts if a != '000']
+            tok = legible[0] if legible else alts[0]
         if tok and tok != '000' and tok.isdigit():
             out.append(tok)
     return out
