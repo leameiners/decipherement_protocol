@@ -22,6 +22,10 @@ of tests across three corpora with three different decipherment shapes is
 what let several of these tests be validated as genuinely useful rather than
 artifacts of one dataset — see "What generalized and what didn't" below.
 
+The package has also been run against two *deciphered* corpora as a
+retrospective check — does a blind classifier's output agree with what
+decipherment already established? See "Deciphered controls" below.
+
 ## The common schema
 
 Every corpus becomes a `Corpus` of `Document`s (`decipherment_protocol.types`):
@@ -310,6 +314,8 @@ examples/
   run_protoelamite.py    same, for Proto-Elamite -- also exercises P3, P9, P10
   run_indus.py           same, for Indus -- exact match on P1/P2, subset-based on P3/P5/P6/P7
   run_p9_redefined.py    reruns P9 on all three corpora using P6 community labels, not P5's
+  run_linearb.py          deciphered control: Linear B (Mycenaean Greek), full P1-P10
+  run_urIII.py             deciphered control: Ur III Sumerian, full P1-P10
 ```
 
 ## Validation status
@@ -363,6 +369,83 @@ openly downloadable transliterated dataset reachable through this package's
 usual approach (clone a mirror, fetch a bulk dump). A future adapter for any
 of these should expect thin, noisy P2/P5/P6/P7/P9 results as a property of
 the source, not a bug in the adapter.
+
+## Deciphered controls
+
+None of the four corpora above has a known answer to check the protocol's
+classifiers against. `run_linearb.py` does: Linear B (Mycenaean Greek),
+deciphered by Ventris in 1952, is a direct sibling of Linear A -- same
+administrative-ledger genre, many shared sign shapes -- except its grammar
+and hundreds of individual word meanings are now scholarly consensus. Source:
+`github.com/InsiderPhD/Linear-B-Dataset`, 4,794 distinct tablets after
+de-duplicating the raw scrape (789 of 796 duplicated identifiers were
+byte-identical repeats).
+
+P5's purely distributional classifier, given no semantic information, sorts
+four well-documented Mycenaean grammatical particles: *-de* (allative,
+"to/towards"), *-qe* (enclitic "and"), and *-jo* (genitive-singular ending)
+all land final-preferring, matching their documented function exactly. The
+fourth, *wa-*, lands free/medial -- also correctly, since *wa* is both a real
+final inflectional element and one of the commonest syllables to *begin* a
+Mycenaean name (*wa-na-ka*, "king"), so a mixed classification is the
+linguistically accurate answer, not a miss. P10's genre-restricted totaling
+test, run against Linear B's own summation particle *to-so* ("so much, so
+many"), finds the same ledger-plus-stated-total structure Linear A's *ku-ro*
+does, including one exact hand-verified match (tablet KN As 1517: seventeen
+itemized entries, *to-so* VIR 17); the automated hit rate undercounts this
+because the source's flattened line format doesn't reliably mark where a
+tablet's lines break or whether it continues after a stated subtotal, not
+because the structure isn't there. P1's blind census also recovers 90 signs,
+close to Linear B's known ~87-sign core syllabary. P2's Modified Power Law
+exponent (-0.26) is a genuine outlier against this package's other corpora
+(-0.82 to -1.21): a closed phonetic syllabary transliterated at the syllable
+level is a flatter, more alphabet-like distribution than the logogram-heavy
+sign lists P2 was otherwise calibrated against, a scope difference rather
+than a failed prediction.
+
+`run_urIII.py` runs a second, independent check against Ur III Sumerian (ca.
+2100-2000 BCE) -- the single largest administrative cuneiform archive that
+survives, and the direct genre ancestor of this protocol's P10 (Damerow and
+Englund developed the totaling-tablet method on archives exactly like this
+one). Source: `github.com/cdli-gh/data`, the same official CDLI bulk dump
+this package's Proto-Elamite adapter already uses, filtered to period "Ur III
+(ca. 2100-2000 BC)" and genre "Administrative": 106,802 catalogued texts, of
+which 74,678 (69.9%) carry a transliteration in the bulk release.
+
+P1 counts 7,044 distinct signs across 4.62 million occurrences -- Sumerian's
+transliterated "signs" at this level are closer to distinct word-readings
+than a small closed syllabary, so both the inventory size and the hapax
+share (43.8%) run well above this package's other corpora for that reason,
+not because the tail is genuinely longer. P2's exponent (-0.82) is a third
+distinct position on the same scale as Linear B's -0.26 and the original
+three corpora's -1.03-to-1.35 range -- consistent with the exponent tracking
+how word-like versus sign-like a script's transliterated units are, as much
+as it tracks language typology. P3 does not apply, but for an adapter reason
+rather than a corpus one: restricting to a single genre (Administrative)
+leaves no second artifact-type axis to test site against. P5 again produces
+the clearest check: two case suffixes with one grammatical function each
+(*-sze3* "to/for", *-ta* "from") land final-preferring at 0.77 and 0.86 --
+higher confidence than any single Linear B ending -- while the content noun
+*lugal* ("king") is correctly classified free/medial rather than an ending.
+A third sign, *-ka* ("in/of"), lands free/medial too, mirroring Linear B's
+*wa-* complication: *-ka* is also the ordinary word for "mouth," and the
+syllable recurs inside many unrelated word stems. P6 recovers 7 communities
+at Q=0.291, the strongest modularity this package has found on any corpus.
+P7's mean word length (4.4 signs) is longer than every other corpus here by
+a wide margin, consistent with Sumerian's agglutinative morphology chaining
+several affixes onto one word. P9, run on an 8,000-document subsample for
+tractability (n_perm=200; the full corpus's ~90,000+ eligible segments make
+the default n_perm=2000 impractically slow in pure Python), clumps sharply
+at lag 1 (z=+115.9) and alternates beyond it, the same shape found
+everywhere else. P10's totaling test restricted to *szu-nigin* ("grand
+total") finds a real signal (7.1% hit rate against a 2.3% null on 98 texts)
+smaller in absolute terms than Linear A's 36.4%, but Ur III's *unrestricted*
+rate already beats its own null by a comparable margin (5.3% vs. 1.9%,
+n=31,436) -- administrative ledgers are common with or without an explicit
+total-word, unlike Linear A's mixed-genre corpus. The absolute rate is also
+a likely undercount specifically: this adapter decodes only Sumerian's base
+counting system, not the separate grain/area/weight systems many Ur III
+accounts total in.
 
 ## References
 
