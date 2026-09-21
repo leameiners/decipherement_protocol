@@ -22,7 +22,7 @@ of tests across three corpora with three different decipherment shapes is
 what let several of these tests be validated as genuinely useful rather than
 artifacts of one dataset — see "What generalized and what didn't" below.
 
-The package has also been run against two *deciphered* corpora as a
+The package has also been run against four *deciphered* corpora as a
 retrospective check — does a blind classifier's output agree with what
 decipherment already established? See "Deciphered controls" below.
 
@@ -316,6 +316,8 @@ examples/
   run_p9_redefined.py    reruns P9 on all three corpora using P6 community labels, not P5's
   run_linearb.py          deciphered control: Linear B (Mycenaean Greek), full P1-P10
   run_urIII.py             deciphered control: Ur III Sumerian, full P1-P10
+  run_oldpersian.py        deciphered control: Old Persian cuneiform, P1/P2/P5/P6/P7/P9
+  run_ugaritic.py          deciphered control: Ugaritic alphabetic cuneiform, P1/P2/P5/P6/P7/P9
 ```
 
 ## Validation status
@@ -372,7 +374,7 @@ the source, not a bug in the adapter.
 
 ## Deciphered controls
 
-None of the four corpora above has a known answer to check the protocol's
+None of the three corpora above has a known answer to check the protocol's
 classifiers against. `run_linearb.py` does: Linear B (Mycenaean Greek),
 deciphered by Ventris in 1952, is a direct sibling of Linear A -- same
 administrative-ledger genre, many shared sign shapes -- except its grammar
@@ -446,6 +448,61 @@ total-word, unlike Linear A's mixed-genre corpus. The absolute rate is also
 a likely undercount specifically: this adapter decodes only Sumerian's base
 counting system, not the separate grain/area/weight systems many Ur III
 accounts total in.
+
+`run_oldpersian.py` runs a third, structurally different check against Old
+Persian cuneiform -- the earliest-deciphered script in this package (Grotefend
+1802, over a century before Linear B), and the only one of the four controls
+built for royal monumental inscriptions rather than an administrative-ledger
+tradition. Source: `github.com/Electronic-Old-Persian-Library/Old-Persian-Dataset`,
+`textdata/web_scraping/`'s scrape of livius.org: 75 of 90 Kent-sigla
+inscriptions carry real transliterated text, 3,874 words in total. The source
+gives continuous romanization with no sign-boundary marker, so the adapter
+approximates each word's cuneiform sign sequence with a documented greedy
+consonant-vowel syllabifier, checked by hand against published readings
+(*xšâyathiya* -> xšâ-ya-thi-ya, *dârayavauš* -> dâ-ra-ya-va-u-š, both matching
+the standard scholarly sign division). P1 counts 14,539 occurrences across a
+118-unit vocabulary, larger than the script's true ~36-sign inventory -- an
+artifact of the syllabifier's own letter-pair approximation, not a claim about
+the real sign count. P5 is the cleanest of this package's four deciphered
+controls: all four predicted grammatical elements land in their correct
+class -- the accusative singular ending *-am* (0.97 final), the 3sg
+verb/adjective ending *-tiy*/*-iy* (0.99), and the nominative singular
+masculine ending *-uš* (0.65) all cross the final-preferring threshold, while
+the default vowel *a* -- predicted only not to be final -- comes back
+initial-preferring rather than merely free (0.00 final), an even sharper
+result than predicted, since medial /a/ is absorbed into a preceding
+consonant's sign almost everywhere in this syllabification. P3 and P10 are
+not attempted: the source carries no structured site metadata, and these are
+monumental proclamations with no itemized-list-plus-total structure for P10
+to find.
+
+`run_ugaritic.py` runs a fourth check against Ugaritic alphabetic cuneiform --
+deciphered fastest of the four controls (Bauer, Dhorme, and Virolleaud,
+within months of the tablets' 1929 publication, using cryptanalytic
+letter-frequency and positional reasoning, the closest real-world precedent
+to this protocol's own method) and the only genuinely alphabetic script here
+(30 signs, one per consonant plus three aleph-vowel signs). Source:
+`github.com/alexsosn/cuc`, `auto_parsing/0.2.7/*.tsv`: 279 already
+morphologically-parsed KTU-numbered tablets (categories 1-3 only -- literary/
+ritual texts, letters, legal texts; this release omits KTU 4's economic
+category), 26,082 usable words after deduplicating alternate morphological
+readings of the same word-id and stripping the source's own `x`
+illegible-sign marker (8.2% of sign characters). P5 tells a genuinely
+different story here: four predicted Semitic suffix consonants (*-m*
+enclitic/plural, *-n* energic/plural, *-k* "your", *-y* "my") rank as the
+four highest of six against two root-consonant controls (*l*, *b*) in
+final-position frequency, but none crosses the classifier's fixed 0.6
+threshold the way the other three scripts' endings do. This is a genuine,
+reported limitation rather than a parsing failure: Ugaritic's triliteral
+Semitic roots can end in almost any consonant regardless of whether a suffix
+follows, so a purely single-letter position statistic has less to separate
+suffix from root radical than the syllable-level signs this package's other
+three controls use. P3 is not attempted (this corpus is effectively
+single-findspot). P10 is not run despite the corpus itself glossing a real
+word, *kbd*, literally "total (quantity or price)": hand-checking KTU 3.13
+shows *kbd* closing each individual line-item's own stated amount, not a
+tablet-wide sum over several preceding entries, so P10's per-document model
+doesn't apply to how the marker is actually used.
 
 ## References
 
