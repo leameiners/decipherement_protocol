@@ -218,3 +218,16 @@ print("  well under Linear A's 36.4% ku-ro-restricted figure -- likely because t
 print("  decodes only Sumerian's base counting system (disz/u/gesz2/szar2/szargal), not the")
 print("  separate grain, area, and weight systems many Ur III accounts total in, so many real")
 print("  matches whose total is stated in those units are silently excluded rather than tested.")
+
+# ---------- P11: conditional entropy (Rao et al. 2009-style; see README's
+# "Raghavendra (2026) and the entropy test" section) ----------
+p11 = tests.p11_conditional_entropy(word_corpus)
+print(f"\nP11 entropy (bits): order0={p11['by_order'][0]['entropy']:.3f} "
+      f"order1={p11['by_order'][1]['entropy']:.3f} order2={p11['by_order'][2]['entropy']:.3f}")
+print(f"  within-segment shuffle null (order1): {p11['within_segment_shuffle_order1']['entropy']:.3f} "
+      f"(weak null -- keeps each segment's own sign multiset, only randomizes order)")
+print(f"  i.i.d. resample from marginal null (order1): {p11['iid_resample_order1']['entropy']:.3f} "
+      f"(correct null -- shares the real corpus's sparsity bias)")
+print(f"  real order1 vs i.i.d. null: {p11['by_order'][1]['entropy'] - p11['iid_resample_order1']['entropy']:+.3f} bits "
+      f"(the genuine-structure signal; compare to order0-vs-order1 raw drop of "
+      f"{p11['entropy_drop_0_to_1']:.3f}, which is inflated by estimator bias, not real structure alone)")

@@ -143,6 +143,93 @@ def cnm_modularity(nodes: list, edge_weight: dict[tuple[int, int], float]):
     return {c: mem for c, mem in best_partition.items() if mem}, best_Q
 
 
+def shannon_entropy(freq: dict) -> float:
+    """Shannon entropy, in bits, of a frequency distribution."""
+    total = sum(freq.values())
+    if total == 0:
+        return float('nan')
+    h = 0.0
+    for c in freq.values():
+        if c == 0:
+            continue
+        p = c / total
+        h -= p * math.log2(p)
+    return h
+
+
+def conditional_entropy_by_order(segments: list[list[str]], max_order: int = 2):
+    """Rao et al. (2009)-style conditional entropy H(X_n | X_{n-k}..X_{n-1})
+    at orders 0..max_order, over sign sequences within segments (protocol P11).
+
+    Order 0 is plain sign-frequency entropy; order k>=1 is the entropy of a
+    sign given the k signs immediately before it, estimated directly from
+    observed (context, next-sign) counts -- the same maximum-likelihood
+    estimate Rao et al. use, with no smoothing. Contexts never cross a
+    segment boundary, the same convention this package's other
+    position-aware tests (P5, P7, P9) use. Each order's result reports
+    n_contexts and n_observations alongside the entropy value, since a
+    higher-order estimate on a small corpus can be thin enough that its
+    number is more a measurement of data sparsity than of the script.
+    """
+    order0_freq = defaultdict(int)
+    for seg in segments:
+        for s in seg:
+            order0_freq[s] += 1
+    results = {0: {'entropy': shannon_entropy(order0_freq), 'n_contexts': 1 if order0_freq else 0,
+                   'n_observations': sum(order0_freq.values())}}
+    for k in range(1, max_order + 1):
+        context_next = defaultdict(lambda: defaultdict(int))
+        for seg in segments:
+            for i in range(k, len(seg)):
+                context_next[tuple(seg[i - k:i])][seg[i]] += 1
+        total_obs = sum(sum(d.values()) for d in context_next.values())
+        if total_obs == 0:
+            results[k] = {'entropy': float('nan'), 'n_contexts': 0, 'n_observations': 0}
+            continue
+        h = 0.0
+        for nxts in context_next.values():
+            p_ctx = sum(nxts.values()) / total_obs
+            h += p_ctx * shannon_entropy(nxts)
+        results[k] = {'entropy': h, 'n_contexts': len(context_next), 'n_observations': total_obs}
+    return results
+
+
+def iid_resample_entropy(segments: list[list[str]], freq: dict, max_order: int = 1, seed: int = 13):
+    """Redraws every segment's signs i.i.d. from `freq` (typically the
+    corpus's own order-0 marginal), keeping each segment's length but
+    discarding everything else -- the correct null for isolating real
+    sequential/co-occurrence structure from two things that inflate a raw
+    order0-vs-order1 entropy drop even when none is present.
+
+    The first is what shuffling signs within their own segment controls
+    for: an in-segment shuffle keeps each segment's actual sign multiset
+    intact (so it still carries real co-occurrence information) and only
+    randomizes order, so it isolates "does order matter beyond
+    co-occurrence" -- a weaker null than this one.
+
+    The second, which this function exists to isolate, is the plug-in
+    conditional-entropy estimator's own small-sample bias: with an
+    inventory of hundreds of signs, the number of possible (context,
+    next-sign) cells is large relative to any real corpus's occurrence
+    count, so most contexts are seen only a handful of times -- a context
+    seen once has, by construction, zero empirical conditional entropy
+    regardless of the script's true randomness. This estimator is
+    downward-biased on ANY sequence at this order and sample size,
+    including a genuinely i.i.d. one, which is exactly why an i.i.d.
+    resample sharing the real corpus's occurrence count and segment-length
+    distribution is the correct baseline: it reproduces that same bias, so
+    it does NOT come out close to order-0 entropy in general -- the real
+    corpus's order-1 entropy should be compared against THIS null, not
+    against order-0, and a real gap between the two (rather than between
+    real and order-0) is the genuine-structure signal.
+    """
+    signs = list(freq.keys())
+    weights = list(freq.values())
+    random.seed(seed)
+    resampled = [random.choices(signs, weights=weights, k=len(seg)) for seg in segments if seg]
+    return conditional_entropy_by_order(resampled, max_order=max_order)
+
+
 def permutation_lag_test(label_seqs: list[list], lags: list[int], n_perm: int = 2000, seed: int = 42):
     """Permutation test for same-label recurrence at each lag (protocol P9).
 

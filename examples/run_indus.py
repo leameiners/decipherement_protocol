@@ -179,3 +179,16 @@ print("  findspot grouping entirely produces MORE such coincidences on average (
 print("  the real data does. Even Indus's one genre with a real decoded numeral system has")
 print("  no totaling structure: a V+# tablet records one container's fill count, never")
 print("  several counts that a related object then sums into a stated total.")
+
+# ---------- P11: conditional entropy (Rao et al. 2009-style; see README's
+# "Raghavendra (2026) and the entropy test" section) ----------
+p11 = tests.p11_conditional_entropy(corpus)
+print(f"\nP11 entropy (bits): order0={p11['by_order'][0]['entropy']:.3f} "
+      f"order1={p11['by_order'][1]['entropy']:.3f} order2={p11['by_order'][2]['entropy']:.3f}")
+print(f"  within-segment shuffle null (order1): {p11['within_segment_shuffle_order1']['entropy']:.3f} "
+      f"(weak null -- keeps each segment's own sign multiset, only randomizes order)")
+print(f"  i.i.d. resample from marginal null (order1): {p11['iid_resample_order1']['entropy']:.3f} "
+      f"(correct null -- shares the real corpus's sparsity bias)")
+print(f"  real order1 vs i.i.d. null: {p11['by_order'][1]['entropy'] - p11['iid_resample_order1']['entropy']:+.3f} bits "
+      f"(the genuine-structure signal; compare to order0-vs-order1 raw drop of "
+      f"{p11['entropy_drop_0_to_1']:.3f}, which is inflated by estimator bias, not real structure alone)")
