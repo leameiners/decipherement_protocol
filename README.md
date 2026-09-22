@@ -224,6 +224,50 @@ against order-0, for the gap to mean anything — see the docstrings on both
 functions for the full argument, and "A synthetic non-linguistic control"
 below for what this test does and does not distinguish in practice.
 
+## Extending P11 to order 6, and Sproat's (2010) counterexample
+
+`p11_conditional_entropy` now runs to order 6 by default, matching Rao et
+al.'s (2010) own reply to Sproat (2010): Sproat's original counterexample —
+a synthetic system with Indus's inventory size and Zipf exponent, built with
+no dependency beyond a shared marginal frequency table — matched Indus's
+order-0/1 entropy, and Rao et al. argued that extending the same method to
+higher block orders shows real language's entropy keeps scaling down with
+context in a way such a construction cannot. Rather than only cite that
+exchange, `examples/run_sproat_counterexample.py` builds an explicit,
+documented implementation of Sproat's construction (400 signs, Zipf
+exponent 1.5, every sign drawn i.i.d.) and runs the same extended P11 test
+on it.
+
+Three findings, none of them designed in advance:
+
+1. **The Sproat construction validates the extended null.** Its own
+   real-vs-i.i.d.-null gap stays within ±0.03 bits at every order 1–6 —
+   exactly what a genuinely non-linguistic, order-independent system should
+   show, confirming the extended test doesn't manufacture a false gap on
+   data with no structure at all.
+2. **Order 1 is not language-specific**, again: every one of the seven real
+   corpora and TALLYGRAM alike shows a substantial real-below-null gap at
+   order 1 (−0.5 to −3.6 bits), consistent with Raghavendra (2026) and Nair
+   (2026).
+3. **A genuine order-2 split appears between the deciphered and undeciphered
+   scripts.** The four deciphered controls (Linear B, Ur III, Old Persian,
+   Ugaritic) all sustain the negative (real-more-structured) gap through
+   order 2; Indus, Linear A, and Proto-Elamite all flip to a *positive* gap
+   at order 2, patterning with TALLYGRAM rather than with the scripts known
+   to encode language. This is confounded by segment length for Linear A
+   and Proto-Elamite (median segment length 1 sign, so only a minority of
+   segments even reach an order-2 context) but not for Indus, whose mean
+   segment length (3.35) exceeds Ugaritic's (2.72), which does sustain the
+   negative gap. Past order 2, every corpus (Sproat's construction excepted)
+   flips to or stays at a positive gap, but by then most corpora's context
+   counts approach their observation counts regardless of script — the same
+   finite-sample regime responsible for the order-1 estimator bias in the
+   first place — so orders 3–6 are reported but not read as a continuation
+   of the order-2 pattern.
+
+This is reported as a genuine, unplanned empirical result worth pursuing
+with larger corpora, not as a resolution of the Sproat/Rao dispute.
+
 ## What generalized and what didn't
 
 Running the same ten tests on Indus, Linear A, and Proto-Elamite (built from
@@ -354,6 +398,7 @@ examples/
   run_oldpersian.py        deciphered control: Old Persian cuneiform, P1/P2/P5/P6/P7/P9
   run_ugaritic.py          deciphered control: Ugaritic alphabetic cuneiform, P1/P2/P5/P6/P7/P9
   run_synthetic_control.py TALLYGRAM: a synthetic non-linguistic corpus, full P1-P11
+  run_sproat_counterexample.py  Sproat (2010)'s own counterexample, built explicitly, P1/P2/P7/P11
 ```
 
 ## Validation status
@@ -580,18 +625,22 @@ back to the same sum-check, which a real ledger's scribal errors would not
 let happen — a property of an error-free synthetic ledger, not a bug in
 `p10_totaling_tablet_test`.) **P11**'s entropy-structure signal (real
 order-1 entropy against the i.i.d.-resample null) is a 2.694-bit drop, the
-second-strongest of the eight corpora this package has now run P11 on:
+third-strongest of the nine corpora this package has now run P11 on — but at
+order 2 TALLYGRAM's gap flips positive (+0.202), patterning with the three
+undeciphered scripts rather than with the deciphered controls (see
+"Extending P11 to order 6" above):
 
-| Corpus | P11 real order-1 vs. i.i.d.-null gap (bits) |
-| --- | --- |
-| Ur III Sumerian | -3.553 |
-| TALLYGRAM (synthetic) | -2.694 |
-| Old Persian | -2.539 |
-| Linear B | -1.256 |
-| Indus | -1.243 |
-| Proto-Elamite | -0.771 |
-| Ugaritic | -0.639 |
-| Linear A | -0.545 |
+| Corpus | P11 order-1 gap (bits) | P11 order-2 gap (bits) | Status |
+| --- | --- | --- | --- |
+| Ur III Sumerian | -3.553 | -2.720 | deciphered |
+| TALLYGRAM (synthetic) | -2.694 | +0.202 | non-linguistic (positive control) |
+| Old Persian | -2.539 | -1.344 | deciphered |
+| Linear B | -1.256 | -1.074 | deciphered |
+| Indus | -1.243 | +0.405 | undeciphered |
+| Proto-Elamite | -0.771 | +0.495 | undeciphered |
+| Ugaritic | -0.639 | -1.684 | deciphered |
+| Linear A | -0.545 | +0.493 | undeciphered |
+| Sproat (2010) counterexample | -0.009 | -0.010 | non-linguistic (negative control) |
 
 P2, P6, P7, and P9 all land inside the range this package's seven real
 corpora already span (MPL exponent -0.23, next to Linear B's -0.26; Q=0.096

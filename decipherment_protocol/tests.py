@@ -212,11 +212,23 @@ def p9_periodicity(corpus, classes: dict, lags=(1, 2, 3), min_segment_len=3, n_p
             'lag_results': stats.permutation_lag_test(label_seqs, list(lags), n_perm=n_perm)}
 
 
-def p11_conditional_entropy(corpus, max_order=2, seed=13):
+def p11_conditional_entropy(corpus, max_order=6, seed=13):
     """P11: Rao et al. (2009)-style conditional entropy -- does entropy drop
     as more context (preceding signs) is added, the way it does in natural
     language, rather than staying flat (a maximally random sequence) or
     collapsing to near zero (a maximally rigid one)?
+
+    Default max_order=6 matches Rao et al.'s (2010) reply to Sproat (2010):
+    Sproat's original counterexample was a synthetic system (Zipfian
+    frequencies, conditional independence beyond order 1) that matched
+    Indus's order-0/1 entropy band, so a test that stops at order 2 -- as
+    this test's own first version did -- cannot distinguish real script
+    structure from Sproat's construction. Rao et al.'s reply argues real
+    block entropy keeps SCALING past order 1-2 in a way Sproat's
+    conditionally-independent construction does not; gap_by_order (below)
+    is this package's way of checking that claim directly, corpus by
+    corpus, against an explicit implementation of Sproat's counterexample
+    (see examples/run_sproat_counterexample.py) rather than only citing it.
 
     Reports entropy at each order 0..max_order (see
     stats.conditional_entropy_by_order) against two nulls of increasing
@@ -229,21 +241,31 @@ def p11_conditional_entropy(corpus, max_order=2, seed=13):
         sign set constrains it regardless of order), and should be read as
         testing "does order matter beyond co-occurrence," not "is there
         structure at all."
-      - iid_resample_order1: every segment's signs redrawn i.i.d. from the
-        corpus's own order-0 marginal (stats.iid_resample_entropy), keeping
-        segment lengths but discarding everything else. Compare the real
-        corpus's order-1 entropy against THIS null, not against order-0:
-        the plug-in conditional-entropy estimator used here is itself
-        downward-biased at this order whenever the sign inventory is large
-        relative to the corpus's occurrence count (most (context,
-        next-sign) cells are seen only a handful of times, and a context
-        seen once has zero empirical entropy by construction regardless of
-        true randomness) -- an i.i.d. resample shares the real corpus's
-        occurrence count and segment-length distribution and so reproduces
-        that same bias, which is why it can sit well below order-0 entropy
-        too. A real gap between the corpus's own order-1 entropy and this
-        null's, not between the corpus and order-0, is the genuine-
-        structure signal (see stats.iid_resample_entropy's docstring).
+      - iid_resample_by_order: every segment's signs redrawn i.i.d. from
+        the corpus's own order-0 marginal (stats.iid_resample_entropy), at
+        every order 0..max_order, keeping segment lengths but discarding
+        everything else. Compare the real corpus's order-k entropy against
+        THIS null at the SAME order, not against order-0: the plug-in
+        conditional-entropy estimator used here is itself downward-biased
+        at higher orders whenever the sign inventory is large relative to
+        the corpus's occurrence count (most (context, next-sign) cells are
+        seen only a handful of times, and a context seen once has zero
+        empirical entropy by construction regardless of true randomness,
+        an effect that gets sharply worse as order grows and segments run
+        out of length to supply contexts at all) -- an i.i.d. resample
+        shares the real corpus's occurrence count and segment-length
+        distribution and so reproduces that same bias at every order,
+        which is why it can sit well below order-0 entropy too. A real gap
+        between the corpus's own order-k entropy and this null's AT ORDER
+        k (gap_by_order[k]), not between the corpus and order-0, is the
+        genuine-structure signal at that order (see
+        stats.iid_resample_entropy's docstring). At high orders on
+        short-segment corpora this gap can become uninformative rather
+        than small: once almost every order-k context is unique in both
+        the real corpus and its own null, both plug-in entropies collapse
+        toward zero together and the gap says nothing either way -- report
+        n_contexts/n_observations alongside the gap so a reader can tell
+        a genuine null result from a data-starved one.
     Neither null failing is, on its own, evidence a corpus encodes language
     (see this package's README section on Raghavendra (2026) for why a
     purpose-built non-linguistic system can pass this and stronger checks
@@ -262,11 +284,17 @@ def p11_conditional_entropy(corpus, max_order=2, seed=13):
     for seg in segments:
         for s in seg:
             order0_freq[s] += 1
-    iid_resample_order1 = stats.iid_resample_entropy(segments, dict(order0_freq), max_order=1, seed=seed)[1]
+    iid_resample_by_order = stats.iid_resample_entropy(segments, dict(order0_freq), max_order=max_order, seed=seed)
+    gap_by_order = {
+        k: by_order[k]['entropy'] - iid_resample_by_order[k]['entropy']
+        for k in range(1, max_order + 1)
+        if by_order[k]['n_observations'] and iid_resample_by_order[k]['n_observations']
+    }
     drop = (by_order[0]['entropy'] - by_order[1]['entropy']
             if max_order >= 1 and by_order[1]['n_observations'] else float('nan'))
     return {'by_order': by_order, 'within_segment_shuffle_order1': within_segment_shuffle_order1,
-            'iid_resample_order1': iid_resample_order1, 'entropy_drop_0_to_1': drop}
+            'iid_resample_by_order': iid_resample_by_order, 'gap_by_order': gap_by_order,
+            'entropy_drop_0_to_1': drop}
 
 
 def p10_totaling_tablet_test(corpus, n_perm_or_shuffle=True, seed=1, marker_predicate=None):

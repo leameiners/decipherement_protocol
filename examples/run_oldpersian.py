@@ -187,13 +187,19 @@ print("\nP10: not applicable -- see module docstring (monumental genre, no total
 
 # ---------- P11: conditional entropy (Rao et al. 2009-style; see README's
 # "Raghavendra (2026) and the entropy test" section) ----------
-p11 = tests.p11_conditional_entropy(corpus)
-print(f"\nP11 entropy (bits): order0={p11['by_order'][0]['entropy']:.3f} "
-      f"order1={p11['by_order'][1]['entropy']:.3f} order2={p11['by_order'][2]['entropy']:.3f}")
+p11 = tests.p11_conditional_entropy(corpus, max_order=6)
+print(f"\nP11 entropy (bits), orders 0-6 (Rao et al. 2010's own block-entropy extension):")
+for _k in range(7):
+    _row = p11['by_order'][_k]
+    print(f"  order{_k}: entropy={_row['entropy']:.3f}  n_contexts={_row['n_contexts']}  n_obs={_row['n_observations']}")
 print(f"  within-segment shuffle null (order1): {p11['within_segment_shuffle_order1']['entropy']:.3f} "
       f"(weak null -- keeps each segment's own sign multiset, only randomizes order)")
-print(f"  i.i.d. resample from marginal null (order1): {p11['iid_resample_order1']['entropy']:.3f} "
-      f"(correct null -- shares the real corpus's sparsity bias)")
-print(f"  real order1 vs i.i.d. null: {p11['by_order'][1]['entropy'] - p11['iid_resample_order1']['entropy']:+.3f} bits "
-      f"(the genuine-structure signal; compare to order0-vs-order1 raw drop of "
-      f"{p11['entropy_drop_0_to_1']:.3f}, which is inflated by estimator bias, not real structure alone)")
+print("  i.i.d. resample from marginal null, orders 0-6 (correct null -- shares the real corpus's sparsity bias):")
+for _k in range(7):
+    _row = p11['iid_resample_by_order'][_k]
+    print(f"    order{_k}: entropy={_row['entropy']:.3f}  n_contexts={_row['n_contexts']}  n_obs={_row['n_observations']}")
+print("  real vs i.i.d.-null gap by order (the genuine-structure signal; Rao et al. (2010) argue this keeps")
+print("  scaling past order 1-2 for real language, against Sproat's (2010) order-independent counterexample --")
+print("  see run_sproat_counterexample.py for this project's own test of that specific claim):")
+for _k in sorted(p11['gap_by_order']):
+    print(f"    order{_k}: {p11['gap_by_order'][_k]:+.3f} bits")
