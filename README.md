@@ -1,14 +1,15 @@
 # decipherment_protocol
 
-A dependency-free Python implementation of P1–P10: ten statistical tests for
-comparing undeciphered-script corpora on equal footing (rank-frequency
+A dependency-free Python implementation of P1–P11: eleven statistical tests
+for comparing undeciphered-script corpora on equal footing (rank-frequency
 fitting, site/artifact-type specialization, positional structural
 classification, sign co-occurrence networks, segment-length measurement,
-numeral-system analysis, periodicity, and external validation against
-published scholarship). No numpy/scipy/networkx — every primitive (OLS power-law
-fits, contingency-table residuals, greedy modularity maximization, permutation
-testing) is implemented from scratch in `decipherment_protocol/stats.py`, so
-the package runs anywhere a bare Python 3 interpreter does.
+numeral-system analysis, periodicity, external validation against published
+scholarship, and conditional entropy). No numpy/scipy/networkx — every
+primitive (OLS power-law fits, contingency-table residuals, greedy modularity
+maximization, permutation testing, conditional entropy) is implemented from
+scratch in `decipherment_protocol/stats.py`, so the package runs anywhere a
+bare Python 3 interpreter does.
 
 It was developed by running the identical ten tests on three real corpora —
 the Indus Valley script, Linear A, and Proto-Elamite — three scripts whose
@@ -24,7 +25,10 @@ artifacts of one dataset — see "What generalized and what didn't" below.
 
 The package has also been run against four *deciphered* corpora as a
 retrospective check — does a blind classifier's output agree with what
-decipherment already established? See "Deciphered controls" below.
+decipherment already established? See "Deciphered controls" below. And
+against a synthetic corpus with combinatorial structure and zero linguistic
+content, to check the reverse question — can the battery tell the two apart
+at all? See "A synthetic non-linguistic control" below; mostly, it cannot.
 
 ## The common schema
 
@@ -76,6 +80,7 @@ tests.p9_periodicity(corpus, classes=p5_result["classes"])
 tests.p10_totaling_tablet_test(corpus)          # Englund-style external-validation helper
 tests.p10_totaling_tablet_test(corpus, marker_predicate=lambda signs: "KU-RO" in signs)
                                                  # restricted to texts that actually close with a "total" marker
+tests.p11_conditional_entropy(corpus)           # Rao et al. (2009)-style order-0/1/2 conditional entropy
 ```
 
 Each function returns a plain dict — no printing, no plotting. See
@@ -188,6 +193,36 @@ z=+25.0, Linear A z=+2.2, Proto-Elamite z=+9.6), i.e. signs from the same
 co-occurrence community tend to sit next to each other within a segment,
 strongly on two scripts and weakly on the third. This is now a real, if
 modest, generalizing result across all three corpora, not a discarded one.
+
+## P11, and why it needs two nulls
+
+`p11_conditional_entropy` is a Rao et al. (2009)-style test: does conditional
+entropy fall as more context (preceding signs) is added, the way it does in
+natural language? The first null tried — signs shuffled within their own
+segment — turned out to be too weak to answer that on its own: with segments
+this short (this package's corpora mostly run 2–4 signs per segment, see
+"P7" above), an in-segment shuffle barely resamples anything, since it keeps
+each segment's own small sign set intact and only randomizes order. On every
+corpus tested, that null's order-1 entropy sits *below* order-0 entropy too
+— not because of real structure, but because a segment's own sign identity
+already constrains it regardless of the order those signs appear in.
+
+The real complication runs deeper than that, though: even a genuinely
+random, structureless sequence shows a similar-looking entropy drop at this
+sample size. The plug-in conditional-entropy estimator is downward-biased
+whenever the sign inventory is large relative to the corpus's occurrence
+count — with hundreds of signs, the space of possible (context, next-sign)
+cells vastly exceeds any real corpus's size, so most contexts are seen only
+a handful of times, and a context seen once has zero empirical entropy by
+construction, regardless of the script's true randomness.
+`stats.iid_resample_entropy` exists to control for exactly this: it redraws
+every segment's signs i.i.d. from the corpus's own marginal frequency table,
+keeping segment lengths fixed but discarding all real structure, and so
+reproduces the same sparsity bias the real corpus's estimate carries. The
+real corpus's order-1 entropy has to be compared against *this* null, not
+against order-0, for the gap to mean anything — see the docstrings on both
+functions for the full argument, and "A synthetic non-linguistic control"
+below for what this test does and does not distinguish in practice.
 
 ## What generalized and what didn't
 
@@ -318,6 +353,7 @@ examples/
   run_urIII.py             deciphered control: Ur III Sumerian, full P1-P10
   run_oldpersian.py        deciphered control: Old Persian cuneiform, P1/P2/P5/P6/P7/P9
   run_ugaritic.py          deciphered control: Ugaritic alphabetic cuneiform, P1/P2/P5/P6/P7/P9
+  run_synthetic_control.py TALLYGRAM: a synthetic non-linguistic corpus, full P1-P11
 ```
 
 ## Validation status
@@ -504,6 +540,82 @@ shows *kbd* closing each individual line-item's own stated amount, not a
 tablet-wide sum over several preceding entries, so P10's per-document model
 doesn't apply to how the marker is actually used.
 
+## A synthetic non-linguistic control
+
+Raghavendra (2026) constructs SIGIL, a purpose-built generative emblem
+system with explicit compositional meaning and no phonological value, and
+shows it reproduces the same repetition, directional-asymmetry, and
+lexical-distribution regularities the undeciphered-script literature treats
+as evidence of encoded language — meaning those regularities are not, on
+their own, specific to language. `run_synthetic_control.py` is this
+package's own version of that question, independently designed rather than
+a reproduction of SIGIL: does the full P1–P11 battery this package runs on
+seven real corpora also find "structure" on a system built to have
+structure but no language in it at all?
+
+TALLYGRAM, the generator, is a small synthetic administrative-tally system:
+each record is three fixed-position slots (AGENT, COMMODITY, QUANTITY,
+drawn from closed vocabularies of 40, 25, and 12 marks — the same order of
+magnitude as this package's real sign inventories), Zipf-weighted within
+each slot, with an agent-commodity affinity bias for real co-occurrence
+structure, a synthetic department/record-type axis for P3, and 30% of
+multi-record documents closing with an arithmetically exact TOTAL record for
+P10. None of these marks has a sound value or a meaning beyond its own slot
+identity; every "rule" governing the system is combinatorial or arithmetic.
+
+The result is mostly sobering. **P5** — this package's central test —
+separates TALLYGRAM's three slots with total purity: 40 signs
+initial-preferring, 25 free/medial, 12 final-preferring, exactly matching
+each vocabulary's size, with zero cross-slot noise — cleaner than any real
+corpus here, since no real script's positional signs are ever entirely free
+of legitimate dual function (Linear B's *wa-*, Ur III's *-ka*). **P10**
+unrestricted scores 30.7% against a 5.0% null (6.1x) on TALLYGRAM — higher
+in both absolute terms and margin than any real corpus this package tests
+unrestricted, simply because TALLYGRAM's bookkeeping never contains a
+scribal error. (Restricted to TOTAL-marked records specifically, both hit
+and null rates saturate to 100%: because TALLYGRAM's stated total is a true
+arithmetic invariant of its document, restricting real and shuffled-null
+computations alike to "last segment is the TOTAL record" collapses both
+back to the same sum-check, which a real ledger's scribal errors would not
+let happen — a property of an error-free synthetic ledger, not a bug in
+`p10_totaling_tablet_test`.) **P11**'s entropy-structure signal (real
+order-1 entropy against the i.i.d.-resample null) is a 2.694-bit drop, the
+second-strongest of the eight corpora this package has now run P11 on:
+
+| Corpus | P11 real order-1 vs. i.i.d.-null gap (bits) |
+| --- | --- |
+| Ur III Sumerian | -3.553 |
+| TALLYGRAM (synthetic) | -2.694 |
+| Old Persian | -2.539 |
+| Linear B | -1.256 |
+| Indus | -1.243 |
+| Proto-Elamite | -0.771 |
+| Ugaritic | -0.639 |
+| Linear A | -0.545 |
+
+P2, P6, P7, and P9 all land inside the range this package's seven real
+corpora already span (MPL exponent -0.23, next to Linear B's -0.26; Q=0.096
+and mean segment length 2.92 signs, both inside existing ranges; P9 clumps
+at lag 1, z=+40.35, and alternates at lag 2, z=-40.00, inside Indus's +25.0
+to Ur III's +115.9 range). **P3** is the one test TALLYGRAM does not
+reproduce: its site-by-artifact-type residuals (|adj_resid| ≤ 1.5) are far
+weaker than any real corpus here (+20.4 to +32.1) — though this may just
+mean the department/agent correlation built into TALLYGRAM was weaker than
+real administrative concentration happens to be, not a genuine limit on
+what a non-linguistic system can produce; it was not tuned to pass or fail
+this test either way.
+
+Taken together: most of this package's own battery, applied to a system
+with combinatorial and arithmetic structure and zero linguistic content,
+detects that structure just as readily as it detects Indus's, Linear A's,
+or Proto-Elamite's. P1, P2, and P5 through P11, run alone, establish
+organization, not language. What carries real evidentiary weight is the
+deciphered-controls section above: not that structure exists, but that the
+blind classifier's structural output agrees with grammar independently
+known to be real, on four actual deciphered scripts. TALLYGRAM has no such
+grammar to agree with by construction — which is exactly why that external
+check is necessary, not decorative.
+
 ## References
 
 - Wells, B.K. (2015). *The Archaeology and Epigraphy of Indus Writing*.
@@ -514,6 +626,8 @@ doesn't apply to how the marker is actually used.
   *Iranian Journal of Archaeological Studies* 14(1).
 - Joshi, J.P. and Parpola, A., eds. (1987). *Corpus of Indus Seals and
   Inscriptions, 1: Collections in India*. Helsinki: Suomalainen Tiedeakatemia.
+- Raghavendra, N. (2026). "On the Non-Specificity of Statistical Measures
+  Used in Script Decipherment." arXiv:2608.02999.
 - Rao, R.P.N., Yadav, N., Vahia, M.N., Joglekar, H., Adhikari, R., and
   Mahadevan, I. (2009). "Entropic Evidence for Linguistic Structure in the
   Indus Script." *Science* 324(5931).
