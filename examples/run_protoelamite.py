@@ -94,3 +94,24 @@ print("  by bootstrap-induced segment duplication):")
 for _k in (1, 2):
     _r = p11_boot[_k]
     print(f"    order{_k}: point={_r['point_gap']:+.3f}  sign_stability={_r['sign_stability']:.3f}  (n_boot={_r['n_boot']})")
+
+# ---------- length-matched rerun: this corpus's median segment length is 1 sign
+# (see P7), so only a minority of segments are even long enough to supply an
+# order-2 context at all -- restricting to segments of length>=3 gives the
+# i.i.d. null a length-matched comparison sample instead of one diluted by
+# many resampled draws too short to ever contribute an order-2 observation
+# (see p11_conditional_entropy's min_length docstring) ----------
+_all_segs = [seg for d in corpus.documents for seg in d.segments if seg]
+_n_ge3 = sum(1 for s in _all_segs if len(s) >= 3)
+print(f"\nP11 length-matched check: {_n_ge3}/{len(_all_segs)} segments "
+      f"({_n_ge3/len(_all_segs)*100:.1f}%) have length>=3")
+p11_lm = tests.p11_conditional_entropy(corpus, max_order=2, min_length=3)
+print(f"  length-matched (min_length=3) gap: order1={p11_lm['gap_by_order'][1]:+.3f}  "
+      f"order2={p11_lm['gap_by_order'][2]:+.3f}  (order2 n_obs={p11_lm['by_order'][2]['n_observations']}, "
+      f"unchanged from the unrestricted run above -- order-2 observations can only ever come from "
+      f"segments length>=3 in the first place, so only the null's own sample changes)")
+p11_boot_lm = tests.p11_bootstrap_ci(corpus, orders=(1, 2), n_boot=200, min_length=3)
+for _k in (1, 2):
+    _r = p11_boot_lm[_k]
+    print(f"    length-matched bootstrap order{_k}: point={_r['point_gap']:+.3f}  "
+          f"sign_stability={_r['sign_stability']:.3f}  (n_boot={_r['n_boot']})")

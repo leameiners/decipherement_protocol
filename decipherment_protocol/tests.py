@@ -212,7 +212,7 @@ def p9_periodicity(corpus, classes: dict, lags=(1, 2, 3), min_segment_len=3, n_p
             'lag_results': stats.permutation_lag_test(label_seqs, list(lags), n_perm=n_perm)}
 
 
-def p11_conditional_entropy(corpus, max_order=6, seed=13):
+def p11_conditional_entropy(corpus, max_order=6, seed=13, min_length=1):
     """P11: Rao et al. (2009)-style conditional entropy -- does entropy drop
     as more context (preceding signs) is added, the way it does in natural
     language, rather than staying flat (a maximally random sequence) or
@@ -270,8 +270,17 @@ def p11_conditional_entropy(corpus, max_order=6, seed=13):
     (see this package's README section on Raghavendra (2026) for why a
     purpose-built non-linguistic system can pass this and stronger checks
     too).
+
+    min_length restricts to segments of at least this length before
+    anything else runs (real, shuffle, and i.i.d.-null alike). Use it to
+    length-match corpora before comparing their higher-order gaps: a
+    corpus whose segments are mostly length 1-2 (e.g. Linear A, Proto-
+    Elamite; median segment length 1 sign, see P7) contributes almost no
+    order-2 observations at min_length=1, so its order-2 gap there is
+    measured on a small, length-biased subset of its own data rather than
+    a fair comparison against a corpus with longer segments throughout.
     """
-    segments = [seg for d in corpus.documents for seg in d.segments if seg]
+    segments = [seg for d in corpus.documents for seg in d.segments if seg and len(seg) >= min_length]
     by_order = stats.conditional_entropy_by_order(segments, max_order=max_order)
     random.seed(seed)
     shuffled = []
@@ -297,7 +306,7 @@ def p11_conditional_entropy(corpus, max_order=6, seed=13):
             'entropy_drop_0_to_1': drop}
 
 
-def p11_bootstrap_ci(corpus, orders=(1, 2), n_boot=200, seed=13):
+def p11_bootstrap_ci(corpus, orders=(1, 2), n_boot=200, seed=13, min_length=1):
     """Bootstrap check for P11's real-vs-i.i.d.-null entropy gap at each
     requested order (see p11_conditional_entropy and
     stats.bootstrap_entropy_gap's docstrings). Corpus sizes in this
@@ -327,8 +336,13 @@ def p11_bootstrap_ci(corpus, orders=(1, 2), n_boot=200, seed=13):
     duplication artifact entirely and answers the question that actually
     matters for a claim like "corpus X's order-2 gap is positive" -- is
     the SIGN robust to resampling, not the exact magnitude.
+
+    min_length restricts to segments of at least this length before
+    resampling -- see p11_conditional_entropy's docstring for why this
+    matters for comparing corpora whose segments are mostly too short to
+    supply a higher-order context at all (Linear A, Proto-Elamite).
     """
-    segments = [seg for d in corpus.documents for seg in d.segments if seg]
+    segments = [seg for d in corpus.documents for seg in d.segments if seg and len(seg) >= min_length]
     order0_freq = defaultdict(int)
     for seg in segments:
         for s in seg:

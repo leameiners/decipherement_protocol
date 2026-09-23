@@ -255,12 +255,27 @@ Three findings, none of them designed in advance:
    order 2; Indus, Linear A, and Proto-Elamite all flip to a *positive* gap
    at order 2, patterning with TALLYGRAM rather than with the scripts known
    to encode language. This is confounded by segment length for Linear A
-   and Proto-Elamite (median segment length 1 sign, so only a minority of
-   segments even reach an order-2 context) but not for Indus, whose mean
-   segment length (3.35) exceeds Ugaritic's (2.72), which does sustain the
-   negative gap. Past order 2, every corpus (Sproat's construction excepted)
-   flips to or stays at a positive gap, but by then most corpora's context
-   counts approach their observation counts regardless of script — the same
+   and Proto-Elamite (median segment length 1 sign, so only 18.9% and 19.9%
+   of their segments respectively even reach an order-2 context) but not
+   for Indus, whose mean segment length (3.35) exceeds Ugaritic's (2.72),
+   which does sustain the negative gap. **Tested directly rather than only
+   asserted** (`min_length` on `p11_conditional_entropy`/`p11_bootstrap_ci`
+   restricts every corpus's own i.i.d. null to a length-matched sample,
+   min_length=3 -- the shortest a segment can be and still supply an
+   order-2 observation at all; the real side's order-2 entropy cannot
+   change under this restriction, since it only ever draws from segments
+   already that long, but the null's own sample does): once length-matched,
+   the order-2 gap shrinks by roughly half for both flagged scripts (Linear
+   A: +0.493 → +0.148; Proto-Elamite: +0.495 → +0.249), and bootstrap
+   sign-stability weakens from 100% to 83.5% and 79.0% respectively -- a
+   genuine but now smaller and less certain residual effect survives for
+   both. Indus and Ugaritic (55.0% and 60.1% of segments length≥3) are
+   essentially unaffected by the same restriction (Indus: +0.405 → +0.422,
+   Ugaritic: −1.684 → −1.687, both still 100% bootstrap-robust) -- so
+   Indus's own divergence is not an artifact of this correction either.
+   Past order 2, every corpus (Sproat's construction excepted) flips to or
+   stays at a positive gap, but by then most corpora's context counts
+   approach their observation counts regardless of script — the same
    finite-sample regime responsible for the order-1 estimator bias in the
    first place — so orders 3–6 are reported but not read as a continuation
    of the order-2 pattern.
