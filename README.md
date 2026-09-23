@@ -269,9 +269,13 @@ Three findings, none of them designed in advance:
    A: +0.493 → +0.148; Proto-Elamite: +0.495 → +0.249), and bootstrap
    sign-stability weakens from 100% to 83.5% and 79.0% respectively -- a
    genuine but now smaller and less certain residual effect survives for
-   both. Indus and Ugaritic (55.0% and 60.1% of segments length≥3) are
-   essentially unaffected by the same restriction (Indus: +0.405 → +0.422,
-   Ugaritic: −1.684 → −1.687, both still 100% bootstrap-robust) -- so
+   both. The other five real corpora, each at 55% retention or higher, are
+   essentially unaffected by the same restriction: Indus (55.0%) +0.405 →
+   +0.422, Ugaritic (60.1%) −1.684 → −1.687, Linear B (68.2%) −1.074 →
+   −1.080, Old Persian (73.2%) −1.344 → −1.403, Ur III (81.9%) −2.720 →
+   −2.743 -- every one still 100% bootstrap-robust. The correction's size
+   tracks each corpus's own retention rate: substantial only for the two
+   corpora under 20% retention, negligible everywhere at 55% or above -- so
    Indus's own divergence is not an artifact of this correction either.
    Past order 2, every corpus (Sproat's construction excepted) flips to or
    stays at a positive gap, but by then most corpora's context counts
