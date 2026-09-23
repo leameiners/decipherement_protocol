@@ -171,3 +171,11 @@ print("  scaling past order 1-2 for real language, against Sproat's (2010) order
 print("  see run_sproat_counterexample.py for this project's own test of that specific claim):")
 for _k in sorted(p11['gap_by_order']):
     print(f"    order{_k}: {p11['gap_by_order'][_k]:+.3f} bits")
+
+p11_boot = tests.p11_bootstrap_ci(corpus, orders=(1, 2), n_boot=200)
+print(f"  bootstrap check (200 segment resamples w/ replacement -- see p11_bootstrap_ci's docstring:")
+print("  sign_stability is the number to trust here, not the percentile CI, which is itself biased")
+print("  by bootstrap-induced segment duplication):")
+for _k in (1, 2):
+    _r = p11_boot[_k]
+    print(f"    order{_k}: point={_r['point_gap']:+.3f}  sign_stability={_r['sign_stability']:.3f}  (n_boot={_r['n_boot']})")

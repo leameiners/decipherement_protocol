@@ -230,6 +230,41 @@ def iid_resample_entropy(segments: list[list[str]], freq: dict, max_order: int =
     return conditional_entropy_by_order(resampled, max_order=max_order)
 
 
+def bootstrap_entropy_gap(segments: list[list[str]], freq: dict, order: int, n_boot: int = 200, seed: int = 13):
+    """Nonparametric bootstrap for P11's real-vs-i.i.d.-null conditional-
+    entropy gap at a single order (see tests.p11_conditional_entropy's
+    docstring for what the gap means and why the i.i.d. null, not order-0
+    entropy, is the right comparison in the first place).
+
+    Each of n_boot replicates resamples len(segments) segments WITH
+    REPLACEMENT from the real corpus, computes that resample's own
+    order-`order` conditional entropy, and compares it against a fresh
+    i.i.d. resample drawn from the same fixed marginal `freq` but sharing
+    THAT replicate's own resampled segment-length multiset -- the same
+    pairing principle iid_resample_entropy itself uses, applied per
+    replicate so the null's finite-sample bias tracks the real resample's
+    own sparsity at every draw, not just the original corpus's.
+
+    Returns the n_boot gap values, sorted ascending. Percentiles of this
+    list (e.g. indices at 2.5%/97.5% for a 95% CI) are the caller's to pull
+    out, since which interval matters depends on the specific claim being
+    tested. A local random.Random instance is used for the outer resampling
+    draw so this function's own randomness doesn't get clobbered by
+    iid_resample_entropy's internal global re-seeding on each call.
+    """
+    rng = random.Random(seed)
+    n = len(segments)
+    gaps = []
+    for _ in range(n_boot):
+        resampled = [segments[rng.randrange(n)] for _ in range(n)]
+        real_h = conditional_entropy_by_order(resampled, max_order=order)[order]['entropy']
+        null_h = iid_resample_entropy(resampled, freq, max_order=order,
+                                       seed=rng.randrange(1_000_000))[order]['entropy']
+        gaps.append(real_h - null_h)
+    gaps.sort()
+    return gaps
+
+
 def permutation_lag_test(label_seqs: list[list], lags: list[int], n_perm: int = 2000, seed: int = 42):
     """Permutation test for same-label recurrence at each lag (protocol P9).
 

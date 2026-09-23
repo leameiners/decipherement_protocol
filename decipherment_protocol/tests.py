@@ -297,6 +297,63 @@ def p11_conditional_entropy(corpus, max_order=6, seed=13):
             'entropy_drop_0_to_1': drop}
 
 
+def p11_bootstrap_ci(corpus, orders=(1, 2), n_boot=200, seed=13):
+    """Bootstrap check for P11's real-vs-i.i.d.-null entropy gap at each
+    requested order (see p11_conditional_entropy and
+    stats.bootstrap_entropy_gap's docstrings). Corpus sizes in this
+    package range from a few thousand occurrences to several million, and
+    the pure-Python plug-in estimator this package uses throughout has no
+    fast path -- n_boot is the caller's to scale down for large corpora
+    (see each run_*.py script's own choice, made and reported explicitly
+    rather than silently thinned) rather than something this function
+    picks for itself.
+
+    IMPORTANT CAVEAT, found while building this: naive percentile
+    bootstrap on this gap is itself asymmetrically biased, and the bias is
+    not small. Resampling segments WITH REPLACEMENT necessarily creates
+    exact-duplicate segments that a genuinely new same-size real corpus
+    would not contain; the real (structured) side's conditional-entropy
+    estimate is far more sensitive to duplicated, already-repeated
+    sequences than the i.i.d. null's fresh-drawn side is -- confirmed
+    empirically on Linear A order 1, where bootstrap resampling deflates
+    the real side's mean entropy by ~0.36 bits but the null side's by only
+    ~0.06. The bootstrap gap distribution therefore sits systematically
+    below (more negative than) the true point estimate, and ci_lo/ci_hi
+    below are reported for transparency only -- they should NOT be read
+    as a classical 95% interval around point_gap; they will often not even
+    contain it. sign_stability is the number this function's callers
+    should actually use: the fraction of bootstrap replicates whose gap
+    has the same sign as the real corpus's own point_gap. It sidesteps the
+    duplication artifact entirely and answers the question that actually
+    matters for a claim like "corpus X's order-2 gap is positive" -- is
+    the SIGN robust to resampling, not the exact magnitude.
+    """
+    segments = [seg for d in corpus.documents for seg in d.segments if seg]
+    order0_freq = defaultdict(int)
+    for seg in segments:
+        for s in seg:
+            order0_freq[s] += 1
+    freq = dict(order0_freq)
+    real_by_order = stats.conditional_entropy_by_order(segments, max_order=max(orders))
+    null_by_order = stats.iid_resample_entropy(segments, freq, max_order=max(orders), seed=seed)
+    out = {}
+    for k in orders:
+        point_gap = real_by_order[k]['entropy'] - null_by_order[k]['entropy']
+        gaps = stats.bootstrap_entropy_gap(segments, freq, k, n_boot=n_boot, seed=seed)
+        lo_idx = max(0, int(round(0.025 * (len(gaps) - 1))))
+        hi_idx = min(len(gaps) - 1, int(round(0.975 * (len(gaps) - 1))))
+        if point_gap > 0:
+            same_sign = sum(1 for g in gaps if g > 0)
+        elif point_gap < 0:
+            same_sign = sum(1 for g in gaps if g < 0)
+        else:
+            same_sign = sum(1 for g in gaps if g == 0)
+        out[k] = {'point_gap': point_gap, 'sign_stability': same_sign / len(gaps) if gaps else float('nan'),
+                   'ci_lo': gaps[lo_idx], 'ci_hi': gaps[hi_idx], 'median': gaps[len(gaps) // 2],
+                   'n_boot': len(gaps)}
+    return out
+
+
 def p10_totaling_tablet_test(corpus, n_perm_or_shuffle=True, seed=1, marker_predicate=None):
     """Englund-style external-validation helper: does a text's final numeral
     line/segment total equal the sum of the numerals in the preceding ones?

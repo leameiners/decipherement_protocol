@@ -265,8 +265,25 @@ Three findings, none of them designed in advance:
    first place — so orders 3–6 are reported but not read as a continuation
    of the order-2 pattern.
 
-This is reported as a genuine, unplanned empirical result worth pursuing
-with larger corpora, not as a resolution of the Sproat/Rao dispute.
+**A nonparametric bootstrap confirms the split is not resampling noise.**
+`p11_bootstrap_ci` resamples segments with replacement (200 replicates per
+corpus, 15 for Ur III given its 4.6M occurrences) and reports what fraction
+of replicates keep the same sign as the real gap. Every corpus's order-1
+and order-2 gap holds its sign in **100% of replicates** — including
+Sproat's own construction, whose near-zero point estimate needs one further
+caveat rather than being read as evidence of hidden structure: bootstrap
+resampling itself asymmetrically deflates the *real* side of this statistic
+(duplicated segments concentrate already-observed structure in a way fresh
+i.i.d. draws do not — confirmed directly on Linear A, where bootstrap
+resampling deflates the real side's mean order-1 entropy by ~0.36 bits but
+the null side's by only ~0.06), so a stable sign at a point estimate already
+near zero reflects that artifact, not a genuine effect. See
+`p11_bootstrap_ci`'s and `stats.bootstrap_entropy_gap`'s docstrings for the
+full argument, including why the percentile CI it also reports should not
+be read as a classical interval.
+
+This is reported as a genuine, resampling-robust empirical result worth
+pursuing with larger corpora, not as a resolution of the Sproat/Rao dispute.
 
 ## What generalized and what didn't
 
@@ -630,17 +647,17 @@ order 2 TALLYGRAM's gap flips positive (+0.202), patterning with the three
 undeciphered scripts rather than with the deciphered controls (see
 "Extending P11 to order 6" above):
 
-| Corpus | P11 order-1 gap (bits) | P11 order-2 gap (bits) | Status |
-| --- | --- | --- | --- |
-| Ur III Sumerian | -3.553 | -2.720 | deciphered |
-| TALLYGRAM (synthetic) | -2.694 | +0.202 | non-linguistic (positive control) |
-| Old Persian | -2.539 | -1.344 | deciphered |
-| Linear B | -1.256 | -1.074 | deciphered |
-| Indus | -1.243 | +0.405 | undeciphered |
-| Proto-Elamite | -0.771 | +0.495 | undeciphered |
-| Ugaritic | -0.639 | -1.684 | deciphered |
-| Linear A | -0.545 | +0.493 | undeciphered |
-| Sproat (2010) counterexample | -0.009 | -0.010 | non-linguistic (negative control) |
+| Corpus | P11 order-1 gap (bits) | P11 order-2 gap (bits) | Sign stability (order 1 / order 2) | Status |
+| --- | --- | --- | --- | --- |
+| Ur III Sumerian | -3.553 | -2.720 | 100% / 100% (n=15) | deciphered |
+| TALLYGRAM (synthetic) | -2.694 | +0.202 | 100% / 100% (n=200) | non-linguistic (positive control) |
+| Old Persian | -2.539 | -1.344 | 100% / 100% (n=200) | deciphered |
+| Linear B | -1.256 | -1.074 | 100% / 100% (n=200) | deciphered |
+| Indus | -1.243 | +0.405 | 100% / 100% (n=200) | undeciphered |
+| Proto-Elamite | -0.771 | +0.495 | 100% / 100% (n=200) | undeciphered |
+| Ugaritic | -0.639 | -1.684 | 100% / 100% (n=200) | deciphered |
+| Linear A | -0.545 | +0.493 | 100% / 100% (n=200) | undeciphered |
+| Sproat (2010) counterexample | -0.009 | -0.010 | 100% / 100% (n=200, artifact -- see "Extending P11 to order 6" above) | non-linguistic (negative control) |
 
 P2, P6, P7, and P9 all land inside the range this package's seven real
 corpora already span (MPL exponent -0.23, next to Linear B's -0.26; Q=0.096
