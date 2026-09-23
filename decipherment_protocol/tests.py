@@ -147,6 +147,80 @@ def p5_positional_classes(corpus, min_n=5, threshold=0.6):
     return {'classes': classes, 'rows': rows, 'class_counts': dict(Counter(r['class'] for r in rows))}
 
 
+def fsw_formulaic_repetition(corpus, lengths=(3, 4, 5, 6)):
+    """Farmer, Sproat & Witzel (2004)-style formulaic-repetition rate, as
+    used in Nair (2026)'s synthetic-baseline scorecard (see this package's
+    README's "Nair (2026)" discussion): at each phrase length L, the share
+    of distinct L-sign phrases that recur in two or more different
+    documents ("inscriptions"), among all distinct L-sign phrases found at
+    all. A phrase's own repeat occurrences WITHIN one document count once
+    toward that document's contribution -- only recurrence ACROSS
+    documents counts toward "formulaic," matching the real-language
+    intuition of a stock phrase reused across different texts, not a
+    single text's own internal repetition (already covered by this
+    package's P9/entropy tests). Phrases are drawn from each document's
+    own flat sign sequence, not crossing document boundaries.
+
+    Returns {L: {'total_types', 'repeated_types', 'repetition_rate'}}.
+    """
+    out = {}
+    for L in lengths:
+        phrase_docs = defaultdict(set)
+        for i, d in enumerate(corpus.documents):
+            signs = d.flat_signs
+            seen_in_doc = {tuple(signs[j:j + L]) for j in range(len(signs) - L + 1)}
+            for phrase in seen_in_doc:
+                phrase_docs[phrase].add(i)
+        total_types = len(phrase_docs)
+        repeated_types = sum(1 for docs in phrase_docs.values() if len(docs) >= 2)
+        out[L] = {'total_types': total_types, 'repeated_types': repeated_types,
+                   'repetition_rate': repeated_types / total_types if total_types else float('nan')}
+    return out
+
+
+def fsw_positional_rigidity(corpus, top_n=10, min_n=5):
+    """Farmer, Sproat & Witzel (2004)-style positional-rigidity score, as
+    used in Nair (2026)'s synthetic-baseline scorecard: Cramer's V (see
+    stats.cramers_v) between "is this sign" and "position within its
+    segment" (initial/medial/final, the same convention p5_positional_
+    classes uses), for each of the corpus's top-N most frequent signs,
+    tested against a 2x3 table of {this sign, every other sign} x
+    {initial, medial, final}. Higher V means that sign sticks to one
+    position more rigidly than the corpus's signs do on average.
+
+    Returns {'per_sign': {sign: V}, 'mean_v': ..., 'top_signs': [...]}
+    -- mean_v is the single positional-rigidity score for the corpus,
+    matching what Nair (2026) reports per corpus.
+    """
+    pos_counts = defaultdict(lambda: {'initial': 0, 'medial': 0, 'final': 0})
+    total_occ = Counter()
+    for d in corpus.documents:
+        for seg in d.segments:
+            n = len(seg)
+            if n < 2:
+                continue
+            for i, s in enumerate(seg):
+                total_occ[s] += 1
+                if i == 0:
+                    pos_counts[s]['initial'] += 1
+                elif i == n - 1:
+                    pos_counts[s]['final'] += 1
+                else:
+                    pos_counts[s]['medial'] += 1
+    corpus_totals = {pos: sum(pc[pos] for pc in pos_counts.values()) for pos in ('initial', 'medial', 'final')}
+    top_signs = [s for s, _ in sorted(total_occ.items(), key=lambda kv: -kv[1]) if total_occ[s] >= min_n][:top_n]
+    per_sign = {}
+    for s in top_signs:
+        pc = pos_counts[s]
+        table = {}
+        for pos in ('initial', 'medial', 'final'):
+            table[('sign', pos)] = pc[pos]
+            table[('rest', pos)] = corpus_totals[pos] - pc[pos]
+        per_sign[s] = stats.cramers_v(table)
+    mean_v = sum(per_sign.values()) / len(per_sign) if per_sign else float('nan')
+    return {'per_sign': per_sign, 'mean_v': mean_v, 'top_signs': top_signs}
+
+
 def p6_cooccurrence_network(corpus, min_n=5):
     total_occ = _occ_in_multi_sign_segments(corpus)
     nodes = sorted([s for s, n in total_occ.items() if n >= min_n])

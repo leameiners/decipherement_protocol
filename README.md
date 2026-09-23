@@ -701,6 +701,50 @@ known to be real, on four actual deciphered scripts. TALLYGRAM has no such
 grammar to agree with by construction — which is exactly why that external
 check is necessary, not decorative.
 
+## Nair (2026)'s four FSW metrics, run directly
+
+Nair (2026) scores Indus alone against four metrics drawn from Farmer,
+Sproat, and Witzel's (2004) critique -- text brevity, formulaic repetition,
+hapax legomenon rate, positional rigidity -- calibrated against two
+purpose-built synthetic baselines, and finds Indus sits intermediate
+between them, matching neither cleanly. `run_fsw_metrics.py` implements
+the same four metrics (`tests.fsw_formulaic_repetition`,
+`tests.fsw_positional_rigidity`, plus this package's existing P1 hapax
+rate and mean inscription length for the other two) and runs them across
+this package's own eight corpora instead, asking whether they track the
+same deciphered/undeciphered split P11 found, independently:
+
+| Corpus | Brevity (signs) | Hapax % | FR@3 | FR@6 | Rigidity | Status |
+| --- | --- | --- | --- | --- | --- | --- |
+| Indus | 3.35 | 32.79% | 17.02% | 3.67% | 0.148 | undeciphered |
+| Linear A | 8.54 | 33.97% | 6.36% | 0.69% | 0.091 | undeciphered |
+| Proto-Elamite | 9.85 | 33.72% | 6.84% | 0.15% | 0.098 | undeciphered |
+| Linear B | 10.78 | 3.33% | 31.28% | 6.34% | 0.134 | deciphered |
+| Ur III Sumerian | 62.44 | 43.84% | 34.32% | 12.98% | 0.087 | deciphered |
+| Old Persian | 193.85 | 7.63% | 40.57% | 27.11% | 0.183 | deciphered |
+| Ugaritic | 254.03 | 0.00% | 66.29% | 10.34% | 0.109 | deciphered |
+| TALLYGRAM (synthetic) | 17.00 | 0.00% | 56.70% | 0.67% | 0.260 | non-linguistic (positive control) |
+| Sproat (2010) counterexample | 4.93 | 19.11% | 21.66% | 2.71% | 0.009 | non-linguistic (negative control) |
+
+Two of the four metrics discriminate cleanly, two don't. **Text brevity**
+separates the groups on its own terms: undeciphered scripts run 3.35-9.85
+signs/inscription, every deciphered control 10.78-254.03 -- consistent
+with FSW's own emphasis on Indus's extreme brevity specifically. **Formulaic
+repetition at longer phrase lengths reproduces the same three-versus-four
+split P11's order-2 entropy gap found, independently**: at L=6, all three
+undeciphered scripts sit at 3.67% or below while all four deciphered
+controls sit at 6.34% or above -- and unlike P11's order-1 entropy, this
+metric is *not* fooled by TALLYGRAM, whose own FR@6 (0.67%) correctly
+patterns with the undeciphered group despite its real combinatorial
+structure. **Hapax rate and positional rigidity do not separate the groups
+at all**: Ur III's hapax rate (43.84%) exceeds every undeciphered script's,
+Ugaritic's (0.00%) and Linear B's (3.33%) sit far below them, and
+positional-rigidity ranges overlap heavily (0.087-0.183 deciphered vs.
+0.091-0.148 undeciphered). This mixed picture is itself consistent with
+Nair's own "intermediate, matches neither cleanly" finding, while adding a
+genuinely new result neither project reported before: formulaic repetition
+and P11's order-2 entropy gap independently agree on the same split.
+
 ## References
 
 - Wells, B.K. (2015). *The Archaeology and Epigraphy of Indus Writing*.

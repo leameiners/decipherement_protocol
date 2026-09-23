@@ -67,6 +67,38 @@ def contingency_residuals(table: dict[tuple, int]):
     return out
 
 
+def cramers_v(table: dict[tuple, int]):
+    """Cramer's V, the chi-square-derived association-strength measure in
+    [0, 1] (0 = no association, 1 = perfect association) between the row
+    and column categories of an r x c contingency table of raw counts.
+
+    table: {(row_key, col_key): observed_count} -- every (row, col)
+    combination should have an explicit entry (including 0) so row/column
+    counts are correct even when a cell is empty.
+
+    Used here for Nair (2026)/Farmer-Sproat-Witzel (2004)'s "positional
+    rigidity" metric (see tests.fsw_positional_rigidity): a 2x3 table of
+    {one sign, all other signs} x {initial, medial, final position}. No
+    small-sample (bias) correction is applied -- this is the same
+    asymptotic V the FSW literature itself reports, not a corrected
+    variant, so this package's own numbers are comparable to theirs.
+    """
+    row_tot, col_tot, n = defaultdict(int), defaultdict(int), 0
+    for (r, c), obs in table.items():
+        row_tot[r] += obs
+        col_tot[c] += obs
+        n += obs
+    if n == 0:
+        return float('nan')
+    chi2 = 0.0
+    for (r, c), obs in table.items():
+        exp = row_tot[r] * col_tot[c] / n
+        if exp > 0:
+            chi2 += (obs - exp) ** 2 / exp
+    denom = n * (min(len(row_tot), len(col_tot)) - 1)
+    return math.sqrt(chi2 / denom) if denom > 0 else float('nan')
+
+
 def diversity_ok(table: dict[tuple, int], min_rows=2, min_cols=2, max_dominant_share=0.85):
     """P3 precondition check: is there enough site/type variance to test at all?
 
