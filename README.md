@@ -745,6 +745,18 @@ Nair's own "intermediate, matches neither cleanly" finding, while adding a
 genuinely new result neither project reported before: formulaic repetition
 and P11's order-2 entropy gap independently agree on the same split.
 
+**A document-level bootstrap confirms the FR@6 split isn't a single lucky
+point estimate.** `fsw_formulaic_repetition_bootstrap_ci` resamples
+documents with replacement (200 replicates), counting a phrase as
+recurring only across distinct *original* document identities -- so
+redrawing the same document twice doesn't inflate the rate, the mirror
+image of the safeguard `bootstrap_entropy_gap` needed. Checked against the
+midpoint (5.0%) between the highest undeciphered value (Indus, 3.67%) and
+the lowest deciphered value (Linear B, 6.34%): seven of nine corpora land
+on the correct side in 99.5%+ of replicates. Linear B is the one real soft
+spot (87.5%, since its point estimate sits closest to the boundary);
+Indus, the corpus this paper leans on most, is stable in 98.5%.
+
 ## References
 
 - Wells, B.K. (2015). *The Archaeology and Epigraphy of Indus Writing*.

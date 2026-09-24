@@ -178,6 +178,65 @@ def fsw_formulaic_repetition(corpus, lengths=(3, 4, 5, 6)):
     return out
 
 
+def fsw_formulaic_repetition_bootstrap_ci(corpus, lengths=(3, 4, 5, 6), n_boot=200, seed=13, return_rates=False):
+    """Bootstrap CI for fsw_formulaic_repetition's rate at each phrase
+    length, by resampling DOCUMENTS with replacement.
+
+    This needs a different safeguard than stats.bootstrap_entropy_gap's:
+    naively resampling documents and counting each resampled DRAW as a
+    distinct "document" would badly inflate the rate, since with-
+    replacement resampling routinely draws the same original document more
+    than once, and every phrase in a twice-drawn document would then
+    trivially look like it "recurs across 2+ documents" even though it is
+    the same text counted twice. Every replicate here instead tracks which
+    ORIGINAL document indices a phrase came from, so redrawing the same
+    document contributes only one distinct-document credit no matter how
+    many times it is redrawn -- the same fix stats.bootstrap_entropy_gap
+    does not need, since order-k contexts there are not keyed by document
+    identity in the first place.
+
+    That safeguard removes the inflation risk but not all bias: a
+    with-replacement resample of n documents from n originals covers only
+    ~63% of distinct originals on average (1 - 1/e), so a bootstrap
+    replicate systematically has fewer distinct texts available to supply
+    a phrase's second occurrence than the real corpus does -- this
+    deflates the rate (confirmed empirically: median sits below the real
+    point estimate, not centered on it). ci_lo/ci_hi are reported for
+    transparency but, like stats.bootstrap_entropy_gap's, should not be
+    read as a classical interval centered on point.
+
+    Returns {L: {'point', 'ci_lo', 'ci_hi', 'median', 'n_boot', 'rates' (if
+    return_rates)}}.
+    """
+    docs = corpus.documents
+    n = len(docs)
+    point = fsw_formulaic_repetition(corpus, lengths=lengths)
+    rng = random.Random(seed)
+    out = {}
+    for L in lengths:
+        rates = []
+        for _ in range(n_boot):
+            idxs = [rng.randrange(n) for _ in range(n)]
+            phrase_docs = defaultdict(set)
+            for idx in idxs:
+                signs = docs[idx].flat_signs
+                seen_in_doc = {tuple(signs[j:j + L]) for j in range(len(signs) - L + 1)}
+                for phrase in seen_in_doc:
+                    phrase_docs[phrase].add(idx)
+            total_types = len(phrase_docs)
+            repeated_types = sum(1 for ds in phrase_docs.values() if len(ds) >= 2)
+            rates.append(repeated_types / total_types if total_types else float('nan'))
+        rates.sort()
+        lo_idx = max(0, int(round(0.025 * (len(rates) - 1))))
+        hi_idx = min(len(rates) - 1, int(round(0.975 * (len(rates) - 1))))
+        entry = {'point': point[L]['repetition_rate'], 'ci_lo': rates[lo_idx], 'ci_hi': rates[hi_idx],
+                 'median': rates[len(rates) // 2], 'n_boot': len(rates)}
+        if return_rates:
+            entry['rates'] = rates
+        out[L] = entry
+    return out
+
+
 def fsw_positional_rigidity(corpus, top_n=10, min_n=5):
     """Farmer, Sproat & Witzel (2004)-style positional-rigidity score, as
     used in Nair (2026)'s synthetic-baseline scorecard: Cramer's V (see

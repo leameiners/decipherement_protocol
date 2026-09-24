@@ -21,6 +21,15 @@ tests.fsw_positional_rigidity's docstrings for the two novel ones):
     corpus's ten most frequent signs' start/middle/end distribution
     against the corpus-wide positional marginal.
 
+Also runs a document-level bootstrap on FR@6 specifically (the metric
+found to independently reproduce P11's order-2 split), checking whether
+each corpus's rate stays on the correct side of the midpoint between the
+highest undeciphered and lowest deciphered point estimates across
+resampling uncertainty (see tests.fsw_formulaic_repetition_bootstrap_ci's
+docstring for the duplication safeguard this needs). This step dominates
+the script's runtime -- roughly 35-40 minutes on Ur III alone, given its
+~74,000 documents.
+
 Each corpus is rebuilt by re-running the corpus-construction portion of its
 own dedicated run_*.py script (via AST, stopping right after the line that
 assigns its corpus variable) rather than reimplementing each script's own,
@@ -88,13 +97,33 @@ if __name__ == '__main__':
         pr = tests.fsw_positional_rigidity(corpus)
         print(f"  positional rigidity: mean Cramer's V (top-10 signs) = {pr['mean_v']:.3f}")
 
+        # Document-level bootstrap for FR@6 specifically -- the metric that
+        # independently reproduces P11's order-2 split -- checked against the
+        # midpoint (5.0%) between the highest undeciphered point estimate
+        # (Indus, 3.67%) and the lowest deciphered one (Linear B, 6.34%).
+        # Slow on Ur III (~35-40 min) given its ~74k documents; see
+        # fsw_formulaic_repetition_bootstrap_ci's docstring for why this
+        # needs a different duplication safeguard than the entropy bootstrap.
+        boot = tests.fsw_formulaic_repetition_bootstrap_ci(corpus, lengths=(6,), n_boot=200, return_rates=True)[6]
+        threshold = 0.05
+        if status == 'deciphered':
+            stability = sum(1 for x in boot['rates'] if x > threshold) / len(boot['rates'])
+            side = 'above'
+        else:
+            stability = sum(1 for x in boot['rates'] if x < threshold) / len(boot['rates'])
+            side = 'below'
+        print(f"  FR@6 bootstrap (200 document resamples): point={boot['point']*100:.2f}%  "
+              f"median={boot['median']*100:.2f}%  frac_{side}_5.0%_threshold={stability:.3f}")
+
         results[fname] = {
             'status': status, 'mean_text_len': mean_text_len, 'hapax_rate': p1['hapax_share'],
             'formulaic': {L: r['repetition_rate'] for L, r in fr.items()}, 'rigidity': pr['mean_v'],
+            'fr6_stability': stability,
         }
 
     print("\n\n=== SUMMARY TABLE ===")
-    print(f"{'Corpus':<28} {'Status':<32} {'Brevity':>8} {'Hapax%':>8} {'FR@3':>7} {'FR@6':>7} {'Rigidity':>9}")
+    print(f"{'Corpus':<28} {'Status':<32} {'Brevity':>8} {'Hapax%':>8} {'FR@3':>7} {'FR@6':>7} {'Rigidity':>9} {'FR@6 stab':>10}")
     for fname, r in results.items():
         print(f"{fname:<28} {r['status']:<32} {r['mean_text_len']:>8.2f} {r['hapax_rate']*100:>7.2f}% "
-              f"{r['formulaic'][3]*100:>6.2f}% {r['formulaic'][6]*100:>6.2f}% {r['rigidity']:>9.3f}")
+              f"{r['formulaic'][3]*100:>6.2f}% {r['formulaic'][6]*100:>6.2f}% {r['rigidity']:>9.3f} "
+              f"{r['fr6_stability']:>9.3f}")
